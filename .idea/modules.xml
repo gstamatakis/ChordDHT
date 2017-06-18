@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/chordX.iml" filepath="$PROJECT_DIR$/chordX.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ChordDHT.iml" filepath="$PROJECT_DIR$/ChordDHT.iml" />
     </modules>
   </component>
 </project>
