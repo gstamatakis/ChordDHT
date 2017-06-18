@@ -118,7 +118,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
             log.debug("Contacting Bootstrap Server " + rmiUrl);
             bootstrap = (BootStrapNode) Naming.lookup(rmiUrl);
         } catch (MalformedURLException | RemoteException | NotBoundException e) {
-            log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + e.getStackTrace().toString(), e);
+            log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
         }
 
         try {
@@ -138,7 +138,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                 }
             }
         } catch (Exception e) {
-            log.error("Error in binding ChordNode" + e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + e.getStackTrace().toString(), e);
+            log.error("Error in binding ChordNode" + e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
             return;
         }
 
@@ -800,7 +800,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
         }
 
 		/* Order of operations for initializing a new node:
-		1) Initialize Finger table.
+        1) Initialize Finger table.
 		2) Inform successor node about new node.
 		3) Migrate keys from successor to new node.
 		4) Inform predecessor node about new node.
