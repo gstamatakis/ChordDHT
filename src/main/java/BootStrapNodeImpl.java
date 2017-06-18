@@ -46,6 +46,7 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
 
     /**
      * Dummy constructor
+     *
      * @return null
      */
     public BootStrapNodeImpl() throws RemoteException {
@@ -54,15 +55,16 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
 
     /**
      * This function is the starting point for the BootStrap server
+     *
      * @param args Variable length command line arguments
      * @return null
      */
     public static void main(String[] args) throws Exception {
         if (args.length > 0) {
             // testing module params 
-            testNodeCount = new Integer(args[0]).intValue();
-            testKeyCount = new Integer(args[1]).intValue();
-            testQueryKeyCount = new Integer(args[2]).intValue();
+            testNodeCount = new Integer(args[0]);
+            testKeyCount = new Integer(args[1]);
+            testQueryKeyCount = new Integer(args[2]);
             for (int i = 0; i < testKeyCount; i++) {
                 Random rand = new Random();
                 StringBuilder res = new StringBuilder();
@@ -77,21 +79,22 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
 
         try {
             BootStrapNodeImpl bnode = new BootStrapNodeImpl();
-            //System.setProperty("java.rmi.server.hostname","127.0.0.1");
+            //System.setProperty("java.rmi.server.hostname","192.168.1.101"); //TODO maybe set it to the 192.168.x.x segment.
             Naming.rebind("ChordRing", bnode);
             noOfNodes = 0;
             System.out.println("Waiting for nodes to join or leave the Chord Ring");
             System.out.println("Number of nodes in Chord Ring: " + noOfNodes + "\n");
         } catch (Exception e) {
-            System.out.println("There is some problem with Bootstrap Node." + e.getMessage());
+            e.printStackTrace();
         }
     }
 
     /**
      * This function will be called by any Chord Node that wishes to join the network. The main objective of this function is to assign a unique identifier to a new Chord Node and add it the the ring. Other than this it also implements the two different methods on how to be assigned identifiers based on network proximity.
+     *
      * @param ipaddress The IP Address of the Chord Node joining the ring
-     * @param port The port/identifier of Chord Node instance joining the ring. This differentiates multiple instance running on same system
-     * @param zoneID The identifier for the zone. Accepted values are from -1 to m. Specifying -1 will make the BootStrap assign identifier based on proximity to its probable successors and predecessors.
+     * @param port      The port/identifier of Chord Node instance joining the ring. This differentiates multiple instance running on same system
+     * @param zoneID    The identifier for the zone. Accepted values are from -1 to m. Specifying -1 will make the BootStrap assign identifier based on proximity to its probable successors and predecessors.
      */
     public ArrayList<NodeInfo> addNodeToRing(String ipaddress, String port, int zoneID) throws RemoteException {
         synchronized (this) {
@@ -491,6 +494,7 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
 
     /**
      * This function is called when a Chord Node leaves the ring or is found to be dead.
+     *
      * @param n NodeInfo object storing details of the Chord Node instance
      * @return null
      */
@@ -512,7 +516,8 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
 
     /**
      * This function finds the new successor node if the current successor node is found to be dead or has crashed.
-     * @param n NodeInfo object storing details of the Chord Node instance whose successor is to be found
+     *
+     * @param n         NodeInfo object storing details of the Chord Node instance whose successor is to be found
      * @param dead_node NodeInfo object of the Chord Node instance which is dead
      * @return succ NodeInfo object of the new successor Chord Node
      */
@@ -533,6 +538,7 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
 
     /**
      * This function is called when a Chord Node has successfully joined the Chord ring
+     *
      * @param nodeID The node identifier of the Chord Node that joined successfully
      * @return null
      */
@@ -546,6 +552,7 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
 
     /**
      * This function displays the details of the Chord Nodes in the ring
+     *
      * @return null
      */
     public void displayNodesInRing() throws RemoteException {
@@ -562,6 +569,7 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
 
     /**
      * This function returns the number of nodes currently in the ring
+     *
      * @return int Number of nodes in the ring
      */
     public int getNodesInRing() throws RemoteException {
@@ -570,6 +578,7 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
 
     /**
      * Getter function for the list of node identifiers assigned
+     *
      * @return ArrayList List of the node identifiers already assigned
      */
     public ArrayList<Integer> getNodeIds() throws RemoteException {
@@ -603,6 +612,7 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
 
     /**
      * This function checks if a particular zone of the Chord ring is full ,i.e. all the slots are occupied by CHord Node instances
+     *
      * @param zoneID The zone number in the Chord ring. Allowed range is 0 to (m-1).
      * @return is_filled Boolean value indicating is zone is full or not. True indicates full.
      */
