@@ -48,4 +48,7 @@ ChordX can be run in 2 ways, Manually and Automated.
 3. Configure the firewall on each node to allow machines to communicate on port 1099
 4. In the deployer `deployer.sh` , configure the IP Address of bootstrap Node (i.e. current node) and all the machines where chordX will be running. Further, to automate the testing process, enter the keys to insert and query in variables "testkeystoinsert" and "testkeystoquery" inside the deployer.sh
 5. Modify the permission of `deployer.sh` to run as executable and run the command './deploer.sh'
-6. All the testing will be performed automatically and performance metrics will be displayed on screen
+6. All the testing will be performed automatically and performance metrics will be displayed on screen.
+
+### TIPS
+1.Run rmiregistry & in the classes folder.
