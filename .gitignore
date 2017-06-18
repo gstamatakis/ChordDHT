@@ -1,4 +1,1 @@
-*.class
-*.classpath
-*.project
-*.jar
+target/
