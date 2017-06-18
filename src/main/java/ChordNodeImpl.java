@@ -798,7 +798,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
             FingerTableEntry fte = new FingerTableEntry(start, succ);
             fingertable[i] = fte;
         }
-		
+
 		/* Order of operations for initializing a new node:
 		1) Initialize Finger table.
 		2) Inform successor node about new node.
