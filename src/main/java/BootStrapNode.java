@@ -3,7 +3,6 @@ import java.rmi.RemoteException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 
-//Interface for the BootStrap Server node
 public interface BootStrapNode extends Remote {
 
     ArrayList<NodeInfo> addNodeToRing(String ipaddress, String port, int zoneID) throws RemoteException;

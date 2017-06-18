@@ -238,7 +238,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                     Result delHops = new Result();
                     startTime = System.currentTimeMillis();
                     res = cni.delete_key(key, delHops);
-                    if (res == true)
+                    if (res)
                         System.out.println(key + " successfully deleted.");
                     else
                         System.out.println("Key not found. Deletion unsuccessful.");
@@ -247,7 +247,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                     delHops.latency = timetaken;
                     log.info("Hop Count for delete key operation: " + delHops.hopCount);
                     log.info("Time taken for delete key operation: " + timetaken + "ms");
-                    met = new HashMap<String, Result>();
+                    met = new HashMap<>();
                     met.put("DELETE", delHops);
                     cni.metrics.add(met);
                     break;
@@ -258,7 +258,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                 case 9:
                     Result lhops = new Result();
                     startTime = System.currentTimeMillis();
-                    if (cni.leave_ring(lhops) == true) {
+                    if (cni.leave_ring(lhops)) {
                         timerStabilize.cancel();
                         timerFixFinger.cancel();
                         timerStabilize.purge();
@@ -270,7 +270,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                             Naming.unbind("rmi://localhost/ChordNode_" + cni.node.port);
                             log.debug("ChordNode RMI object unbinded");
                         } catch (Exception e) {
-                            log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + e.getStackTrace().toString(), e);
+                            log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
                         }
                         running = false;
                         endTime = System.currentTimeMillis();
@@ -278,7 +278,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                         lhops.latency = timetaken;
                         log.info("Hop Count while leaving Chord network: " + lhops.hopCount);
                         log.info("Time taken for leaving the Chord network:" + timetaken + "ms");
-                        met = new HashMap<String, Result>();
+                        met = new HashMap<>();
                         met.put("LEAVE", lhops);
                         cni.metrics.add(met);
                         sc.close();
@@ -313,7 +313,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
             newNode = c.get_successor();
             log.debug("Successor for id: " + id + " is " + newNode.nodeID + "\n");
         } catch (Exception e) {
-            log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + e.getStackTrace().toString(), e);
+            log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
             return null;
         }
 
@@ -381,60 +381,6 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
         return this.node;
     }
-
-
-    // No need for updating other nodes after joining now.
-    // This is taken care of by periodic fix_fingers routine.
-
-	/*
-    @Override
-	public void update_others_after_join(Result result) {
-		//System.out.println("updating finger table of other nodes.");
-		for(int i = 1; i <= ftsize; i++){
-			int id = this.node.nodeID - (int)Math.pow(2, i-1) + 1;
-			if(id < 0){
-				id += maxNodes;
-			}
-			
-			NodeInfo p = find_predecessor(id, result);
-			//System.out.println("Predecessor of id: " + id + " is " + p.nodeID);
-			//System.out.println("iteration " + i + ": try to update Finger table entry " + (i-1) + " of node " + p.nodeID + " with my nodeID.");
-			
-			try {
-				ChordNode c = (ChordNode)Naming.lookup("rmi://"+p.ipaddress+"/ChordNode_" + p.port);
-				if(this.node.nodeID != p.nodeID)
-					result.hopCount++;
-				c.update_finger_table_join(this.node, i-1, result);				
-			} catch (Exception e) {
-				//System.out.println("Chord Node lookup in update_others");
-				log.error(e.getClass() + ": " +  e.getMessage() + ": " + e.getCause() + "\n" +  e.getStackTrace().toString(),e);
-			}
-		}
-	}
-
-	@Override
-	public void update_finger_table_join(NodeInfo s, int i, Result result) {
-		//System.out.println("Trying to update Finger table entry " + i + " to " + s.nodeID);
-		
-		int myID = this.node.nodeID;
-		int nextID = fingertable[i].successor.nodeID;
-		
-		if(((myID >= nextID && (s.nodeID >= myID || s.nodeID < nextID)) || 
-				(myID < nextID && (s.nodeID >= myID && s.nodeID < nextID))) && myID != s.nodeID){
-			fingertable[i].successor = s;
-			//System.out.println("Finger table entry " + i + " successfully set as " + s.nodeID);
-			NodeInfo p = predcessor;
-			try {
-				ChordNode c = (ChordNode)Naming.lookup("rmi://"+p.ipaddress+"/ChordNode_" + p.port);
-				if(this.node.nodeID != p.nodeID)
-					result.hopCount++;
-				c.update_finger_table_join(s, i, result);				
-			} catch (Exception e) {
-				log.error(e.getClass() + ": " +  e.getMessage() + ": " + e.getCause() + "\n" +  e.getStackTrace().toString(),e);
-			} 
-		}
-	}
-	*/
 
     /**
      * This function is called immediately after the join to initialize data structures specifically the finger table entries to assist in routing
