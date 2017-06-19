@@ -248,25 +248,4 @@ public interface ChordNode extends Remote {
      * @throws RemoteException Due to RMI.
      */
     void makeCall(NodeInfo n) throws RemoteException;
-
-    /**
-     * This function checks if a node identifier is in the circular interval of two other nodes
-     *
-     * @param x The node identifier which is to be verified
-     * @param a The start node in the circular interval
-     * @param b The end node in the circular interval
-     * @return val true if node is in circular interval, else false
-     */
-    boolean inCircularInterval(int x, int a, int b);
-
-    /**
-     * This function checks if a node identifier is in the circular interval of two other nodes
-     * or if the node which is to be verified is the same as the last one.
-     *
-     * @param x The node identifier which is to be verified
-     * @param a The start node in the circular interval
-     * @param b The end node in the circular interval
-     * @return val true if node is in circular interval, else false
-     */
-    boolean inCircularIntervalEndInclude(int x, int a, int b);
 }
