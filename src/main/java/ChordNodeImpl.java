@@ -139,7 +139,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
             cni.predecessor = nodes.get(2);
             log.info("My ID: " + cni.node.nodeID);
             log.info("Successor ID - " + cni.fingertable[0].successor.nodeID);
-            log.info("Predcessor ID - " + cni.predecessor.nodeID);
+            log.info("Predecessor ID - " + cni.predecessor.nodeID);
         } else {
             log.error("Join unsuccessful");
             return;
