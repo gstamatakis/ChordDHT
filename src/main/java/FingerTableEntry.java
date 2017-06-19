@@ -4,8 +4,6 @@ public class FingerTableEntry {
 
     /**
      * Dummy constructor
-     *
-     * @return null
      */
     public FingerTableEntry() {
         this.start = 0;
@@ -17,7 +15,6 @@ public class FingerTableEntry {
      *
      * @param start The start value for each finger table entry
      * @param n     The successor Chord Node instance information object
-     * @return null
      */
     public FingerTableEntry(int start, NodeInfo n) {
         this.start = start;

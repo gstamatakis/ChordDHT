@@ -1,4 +1,4 @@
-/**
+/*
  * This class serves as the starting point for the BootStrap server and
  * has functions to assist in node joins and departure while also serves
  * the purpose of collecting metrics for the improvements made.
@@ -18,36 +18,18 @@ import java.util.*;
 public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapNode {
     private static final long serialVersionUID = 1L;
 
-    // m and maxNodes in BootStrapNodeImpl should be same as
-    // m and maxNodes in ChordNodeImpl.
     public static int maxNodes = 32; // Maximum number of permitted nodes in the Chord Ring
     public static int m = 5; // maxNodes = 2^m;
-    public static int noOfNodes = 0;
-
-    // For testing module
-    public static int testNodeCount = 0;
-    public static int testQueryKeyCount = 0;
-    public static int testKeyCount = 0;
-    public static long totalNodeJoinTime = 0;
-    public static String SALTCHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
-    public static ArrayList<String> TestKeysList = new ArrayList<String>();
-    public static long[] operationStat = new long[3];
-    public static ArrayList<Result> stats = new ArrayList<Result>();
-    public static ArrayList<Result> stats2 = new ArrayList<Result>();
-    public static boolean[] testOpsStat;
-    public static boolean[] testOpsStat2;
-    public static boolean testGetOps;
-    public static long errcount_query = 0;
-
     // Variables to identify the nodes in the Chord Ring
-    public static HashMap<Integer, NodeInfo> nodes = new HashMap<Integer, NodeInfo>();
-    public static ArrayList<NodeInfo> nodeList = new ArrayList<NodeInfo>();
-    public static ArrayList<Integer> nodeIds = new ArrayList<Integer>();
+    public static HashMap<Integer, NodeInfo> nodes = new HashMap<>();
+    private static int noOfNodes = 0;
+    private static ArrayList<NodeInfo> nodeList = new ArrayList<>();
+    private static ArrayList<Integer> nodeIds = new ArrayList<>();
 
     /**
      * Dummy constructor
      *
-     * @return null
+     * @throws RemoteException Due to RMI.
      */
     public BootStrapNodeImpl() throws RemoteException {
         System.out.println("Bootstrap Node created");
@@ -57,29 +39,11 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
      * This function is the starting point for the BootStrap server
      *
      * @param args Variable length command line arguments
-     * @return null
+     * @throws RemoteException Due to RMI.
      */
     public static void main(String[] args) throws Exception {
-        if (args.length > 0) {
-            // testing module params 
-            testNodeCount = new Integer(args[0]);
-            testKeyCount = new Integer(args[1]);
-            testQueryKeyCount = new Integer(args[2]);
-            for (int i = 0; i < testKeyCount; i++) {
-                Random rand = new Random();
-                StringBuilder res = new StringBuilder();
-                // generate 20 character keys and values
-                for (int j = 0; j < 20; j++) {
-                    int randIndex = rand.nextInt(36);
-                    res.append(SALTCHARS.charAt(randIndex));
-                }
-                TestKeysList.add(res.toString());
-            }
-        }
-
         try {
             BootStrapNodeImpl bnode = new BootStrapNodeImpl();
-            //System.setProperty("java.rmi.server.hostname","192.168.1.101"); //TODO maybe set it to the 192.168.x.x segment.
             Naming.rebind("ChordRing", bnode);
             noOfNodes = 0;
             System.out.println("Waiting for nodes to join or leave the Chord Ring");
@@ -89,31 +53,24 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
         }
     }
 
-    /**
-     * This function will be called by any Chord Node that wishes to join the network. The main objective of this function is to assign a unique identifier to a new Chord Node and add it the the ring. Other than this it also implements the two different methods on how to be assigned identifiers based on network proximity.
-     *
-     * @param ipaddress The IP Address of the Chord Node joining the ring
-     * @param port      The port/identifier of Chord Node instance joining the ring. This differentiates multiple instance running on same system
-     * @param zoneID    The identifier for the zone. Accepted values are from -1 to m. Specifying -1 will make the BootStrap assign identifier based on proximity to its probable successors and predecessors.
-     */
     public ArrayList<NodeInfo> addNodeToRing(String ipaddress, String port, int zoneID) throws RemoteException {
         synchronized (this) {
             if (nodeList.size() == maxNodes) {
                 System.out.println("No more node joins allowed as Chord network has reached it capacity");
                 return null;
             } else {
-                ArrayList<NodeInfo> result = new ArrayList<NodeInfo>();
+                ArrayList<NodeInfo> result = new ArrayList<>();
                 ArrayList<Integer> copy = nodeIds;
                 noOfNodes++;
                 int nodeID = -1;
-                String timeStamp = "";
-                ArrayList<Integer> randomIds = null;//Stores the set of random Ids generated for the network proximity method
-                ArrayList<Integer> succIds = null;
-                ArrayList<Integer> predIds = null;
+                String timeStamp;
+                ArrayList<Integer> randomIds;//Stores the set of random Ids generated for the network proximity method
+                ArrayList<Integer> succIds;
+                ArrayList<Integer> predIds;
                 if (zoneID < 0) {//If zoneID < 0, then opt for the proximity based identifier assignment method for node identifier assignment
-                    randomIds = new ArrayList<Integer>();
-                    succIds = new ArrayList<Integer>();
-                    predIds = new ArrayList<Integer>();
+                    randomIds = new ArrayList<>();
+                    succIds = new ArrayList<>();
+                    predIds = new ArrayList<>();
 
                     int i;
                     int freeZoneCnt = 0;
@@ -149,28 +106,25 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
                         nodeList.add(ni);
                         System.out.println("New node added to ring with ID: " + nodeID);
                     } else {//Calculate the latency for each probable ID and choose the best
-                        int j, k;
-                        int minLatencyIdx = 0;
+                        int k;
                         long minLatency = Long.MAX_VALUE;
                         for (k = 0; k < randomIds.size(); k++) {
-                            int node_id = randomIds.get(k);
+                            randomIds.get(k);
                             int succ_id = succIds.get(k);
-                            int pred_id = predIds.get(k);
+                            predIds.get(k);
                             long startTime = System.currentTimeMillis();
                             ChordNode c = null;
                             try {
                                 c = (ChordNode) Naming.lookup("rmi://" + ipaddress + "/ChordNode_" + port);
-                            } catch (MalformedURLException e) {
-                                e.printStackTrace();
-                            } catch (NotBoundException e) {
+                            } catch (MalformedURLException | NotBoundException e) {
                                 e.printStackTrace();
                             }
+                            assert c != null;
                             c.makeCall(nodes.get(succ_id));
                             long endTime = System.currentTimeMillis();
                             long timetaken = endTime - startTime;
                             if (timetaken < minLatency) {
                                 minLatency = timetaken;
-                                minLatencyIdx = k;
                             }
                         }
                         NodeInfo ni = new NodeInfo(ipaddress, port, nodeID);
@@ -225,279 +179,11 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
 
                 //This section contains the code to test the protocol on deploying in multiple systems and has entire metrics collection 
                 //modules too as part of it
-                if (noOfNodes == testNodeCount) {
-                    testOpsStat = new boolean[3];
-                    testOpsStat[0] = false;
-                    testOpsStat[1] = false;
-                    testOpsStat[2] = false;
-                    testGetOps = false;
-                    testOpsStat2 = new boolean[3];
-                    testOpsStat2[0] = false;
-                    testOpsStat2[1] = false;
-                    testOpsStat2[2] = false;
-
-                    totalNodeJoinTime = 0;
-
-                    for (int i = 0; i < noOfNodes; i++) {
-                        try {
-                            Result insHops = new Result();
-                            ChordNode c = (ChordNode) Naming.lookup("rmi://" + nodeList.get(i).ipaddress + "/ChordNode_" + nodeList.get(i).port);
-                            totalNodeJoinTime += c.get_join_time();
-                        } catch (MalformedURLException | RemoteException | NotBoundException e) {
-                            e.printStackTrace();
-                            //log.error(e.getClass() + ": " +  e.getMessage() + ": " + e.getCause() + "\n" +  e.getStackTrace().toString(),e);
-                        }
-                    }
-
-                    //create 3 threads(t1-t3) to insert keys concurrently from multiple nodes
-                    Thread t1 = new Thread(new Runnable() {
-                        public void run() {
-                            // 
-                            try {
-                                Result insHops = new Result();
-                                ChordNode c = (ChordNode) Naming.lookup("rmi://" + nodeList.get(0).ipaddress + "/ChordNode_" + nodeList.get(0).port);
-                                int testOps = 0;
-                                for (int i = 0; i < testKeyCount / 3; i++) {
-                                    System.out.println("THREAD 1 : Inserting Key : " + TestKeysList.get(i));
-                                    c.insert_key(TestKeysList.get(i), TestKeysList.get(i), insHops);
-                                    testOps++;
-                                }
-                                insHops.latency = c.get_insert_latency();
-                                insHops.hopCount = c.get_insert_hopcount();
-                                System.out.println("Got latency from thread 1 : " + insHops.latency);
-                                stats.add(insHops);
-                                testOpsStat[0] = true;
-                            } catch (MalformedURLException | RemoteException | NotBoundException e) {
-                                e.printStackTrace();
-                                //log.error(e.getClass() + ": " +  e.getMessage() + ": " + e.getCause() + "\n" +  e.getStackTrace().toString(),e);
-                            }
-                        }
-                    });
-                    Thread t2 = new Thread(new Runnable() {
-                        public void run() {
-                            try {
-                                Result insHops = new Result();
-                                ChordNode c = (ChordNode) Naming.lookup("rmi://" + nodeList.get(1).ipaddress + "/ChordNode_" + nodeList.get(1).port);
-                                int testOps = 0;
-                                for (int i = (testKeyCount / 3); i < ((2 * testKeyCount) / 3); i++) {
-                                    System.out.println("THREAD 2 : Inserting Key : " + TestKeysList.get(i));
-                                    c.insert_key(TestKeysList.get(i), TestKeysList.get(i), insHops);
-                                    testOps++;
-                                }
-                                insHops.latency = c.get_insert_latency();
-                                insHops.hopCount = c.get_insert_hopcount();
-                                System.out.println("Got latency from thread 2 : " + insHops.latency);
-                                stats.add(insHops);
-                                testOpsStat[1] = true;
-                            } catch (MalformedURLException | RemoteException | NotBoundException e) {
-                                e.printStackTrace();
-                                //log.error(e.getClass() + ": " +  e.getMessage() + ": " + e.getCause() + "\n" +  e.getStackTrace().toString(),e);
-                            }
-                        }
-                    });
-                    Thread t3 = new Thread(new Runnable() {
-                        public void run() {
-                            // 
-                            try {
-                                Result insHops = new Result();
-                                ChordNode c = (ChordNode) Naming.lookup("rmi://" + nodeList.get(2).ipaddress + "/ChordNode_" + nodeList.get(2).port);
-                                int testOps = 0;
-                                for (int i = ((2 * testKeyCount) / 3); i < testKeyCount; i++) {
-                                    System.out.println("THREAD 3 : Inserting Key : " + TestKeysList.get(i));
-                                    c.insert_key(TestKeysList.get(i), TestKeysList.get(i), insHops);
-                                    testOps++;
-                                }
-                                insHops.latency = c.get_insert_latency();
-                                insHops.hopCount = c.get_insert_hopcount();
-                                System.out.println("Got latency from thread 2 : " + insHops.latency);
-                                stats.add(insHops);
-                                testOpsStat[2] = true;
-                            } catch (MalformedURLException | RemoteException | NotBoundException e) {
-                                e.printStackTrace();
-                                //log.error(e.getClass() + ": " +  e.getMessage() + ": " + e.getCause() + "\n" +  e.getStackTrace().toString(),e);
-                            }
-                        }
-                    });
-                    //Thread t4 collects the metrics for insert operation performed by previous 3 threads
-                    Thread t4 = new Thread(new Runnable() {
-                        public void run() {
-                            try {
-                                while (!(testOpsStat[0] && testOpsStat[1] && testOpsStat[2])) {
-                                    Thread.sleep(5000);
-                                    System.out.println("Key Insertion Operation Still happening");
-                                }
-                                System.out.println("Key Operation completed");
-                                long totalHops = 0;
-                                long totalTime = 0;
-                                for (int i = 0; i < stats.size(); i++) {
-                                    totalTime += stats.get(i).latency;
-                                    totalHops += stats.get(i).hopCount;
-                                }
-                                operationStat[0] = totalTime;
-                                operationStat[2] = totalHops;//insert hop count
-                                testOpsStat[0] = false;
-                                testOpsStat[1] = false;
-                                testOpsStat[2] = false;
-                                testGetOps = true;
-                            } catch (InterruptedException e) {
-                                // TODO Auto-generated catch block
-                                e.printStackTrace();
-                            }
-                        }
-                    });
-                    //Threads t5, t6 and t7 perform the get key operation concurrently
-                    Thread t5 = new Thread(new Runnable() {
-                        public void run() {
-                            try {
-                                while (!testGetOps) {
-                                    Thread.sleep(5000);
-                                }
-                                Result insHops = new Result();
-                                ChordNode c = (ChordNode) Naming.lookup("rmi://" + nodeList.get(0).ipaddress + "/ChordNode_" + nodeList.get(0).port);
-                                int testOps = 0;
-                                for (int i = 0; i < testQueryKeyCount / 3; i++) {
-                                    System.out.println("THREAD 1 : Get Key : " + TestKeysList.get(i));
-                                    if (!TestKeysList.get(i).equals(c.get_value(TestKeysList.get(i), insHops)))
-                                        errcount_query++;
-                                    testOps++;
-                                }
-                                insHops.latency = c.get_query_latency();
-                                insHops.hopCount = c.get_query_hopcount();
-                                System.out.println("Got Query latency from thread 1 : " + insHops.latency);
-                                stats2.add(insHops);
-                                testOpsStat2[0] = true;
-                            } catch (InterruptedException | MalformedURLException | RemoteException | NotBoundException e) {
-                                e.printStackTrace();
-                                //log.error(e.getClass() + ": " +  e.getMessage() + ": " + e.getCause() + "\n" +  e.getStackTrace().toString(),e);
-                            }
-                        }
-                    });
-
-                    Thread t6 = new Thread(new Runnable() {
-                        public void run() {
-                            try {
-                                while (!testGetOps) {
-                                    Thread.sleep(5000);
-                                }
-                                Result insHops = new Result();
-                                ChordNode c = (ChordNode) Naming.lookup("rmi://" + nodeList.get(1).ipaddress + "/ChordNode_" + nodeList.get(1).port);
-                                int testOps = 0;
-                                for (int i = (testQueryKeyCount / 3); i < ((2 * testQueryKeyCount) / 3); i++) {
-                                    System.out.println("THREAD 2 : Get Key : " + TestKeysList.get(i));
-                                    if (!TestKeysList.get(i).equals(c.get_value(TestKeysList.get(i), insHops)))
-                                        errcount_query++;
-                                    testOps++;
-                                }
-                                insHops.latency = c.get_query_latency();
-                                insHops.hopCount = c.get_query_hopcount();
-                                System.out.println("Got Query latency from thread 2 : " + insHops.latency);
-                                stats2.add(insHops);
-                                testOpsStat2[1] = true;
-                            } catch (InterruptedException | MalformedURLException | RemoteException | NotBoundException e) {
-                                e.printStackTrace();
-                                //log.error(e.getClass() + ": " +  e.getMessage() + ": " + e.getCause() + "\n" +  e.getStackTrace().toString(),e);
-                            }
-                        }
-                    });
-
-                    Thread t7 = new Thread(new Runnable() {
-                        public void run() {
-                            // 
-                            try {
-                                while (!testGetOps) {
-                                    Thread.sleep(5000);
-                                }
-                                Result insHops = new Result();
-                                ChordNode c = (ChordNode) Naming.lookup("rmi://" + nodeList.get(2).ipaddress + "/ChordNode_" + nodeList.get(2).port);
-                                int testOps = 0;
-                                for (int i = ((2 * testQueryKeyCount) / 3); i < testQueryKeyCount; i++) {
-                                    System.out.println("THREAD 3 : Get Key : " + TestKeysList.get(i));
-                                    if (!TestKeysList.get(i).equals(c.get_value(TestKeysList.get(i), insHops)))
-                                        errcount_query++;
-                                    testOps++;
-                                }
-                                insHops.latency = c.get_query_latency();
-                                insHops.hopCount = c.get_query_hopcount();
-                                System.out.println("Got Query latency from thread 3 : " + insHops.latency);
-                                stats2.add(insHops);
-                                testOpsStat2[2] = true;
-                            } catch (InterruptedException | MalformedURLException | RemoteException | NotBoundException e) {
-                                e.printStackTrace();
-                                //log.error(e.getClass() + ": " +  e.getMessage() + ": " + e.getCause() + "\n" +  e.getStackTrace().toString(),e);
-                            }
-                        }
-                    });
-                    //Thread t8 collects metrics for get opeations and displays results for node joins, insert and get operation
-                    Thread t8 = new Thread(new Runnable() {
-                        public void run() {
-                            try {
-                                while (!(testOpsStat2[0] && testOpsStat2[1] && testOpsStat2[2])) {
-                                    Thread.sleep(5000);
-                                    System.out.println("Key Query Operation Still happening");
-                                }
-                                System.out.println("Key Operation completed");
-                                long totalTime = 0;
-                                long totalHopsQuery = 0;
-                                for (int i = 0; i < stats2.size(); i++) {
-                                    totalTime += stats2.get(i).latency;
-                                    totalHopsQuery += stats2.get(i).hopCount;
-                                }
-
-                                // join latency
-                                System.out.println("\n##########################");
-                                System.out.println("Total latency for " + noOfNodes + " node joins is : " + totalNodeJoinTime + "ms");
-                                System.out.println("Average latency per node join for " + noOfNodes + " is : " + (totalNodeJoinTime / noOfNodes) + "ms");
-                                System.out.println("##########################\n");
-
-                                // Insert Operations
-                                System.out.println("\n##########################");
-                                System.out.println("Total latency for " + testKeyCount + " keys insert is : " + operationStat[0] + "ms");
-                                System.out.println("Average latency per key insertion for " + testKeyCount + " keys is : " + (operationStat[0] / testKeyCount) + "ms");
-                                System.out.println("Average communication messages per key insertion for " + testKeyCount + " keys is : " + (operationStat[2] / testKeyCount));
-                                System.out.println("##########################\n");
-
-                                // Query latency
-                                operationStat[1] = totalTime;
-                                System.out.println("\n##########################");
-                                System.out.println("Total latency for " + testQueryKeyCount + " keys query is : " + operationStat[1] + "ms");
-                                System.out.println("Average latency per key query for " + testQueryKeyCount + " keys is : " + (operationStat[1] / testQueryKeyCount) + "ms");
-                                System.out.println("Average communication messages per key query for " + testQueryKeyCount + " keys is : " + (totalHopsQuery / testQueryKeyCount));
-                                System.out.println("No of key hits: " + (testQueryKeyCount - errcount_query));
-                                System.out.println("No of key misses: " + errcount_query);
-                                System.out.println("##########################\n");
-                                testOpsStat2[0] = false;
-                                testOpsStat2[1] = false;
-                                testOpsStat2[2] = false;
-                                testGetOps = true;
-                                stats = new ArrayList<Result>();
-                            } catch (InterruptedException e) {
-                                // TODO Auto-generated catch block
-                                e.printStackTrace();
-                            }
-                        }
-                    });
-
-                    t1.start();
-                    t2.start();
-                    t3.start();
-                    t4.start();
-                    t5.start();
-                    t6.start();
-                    t7.start();
-                    t8.start();
-                }
-
                 return result;
             }
         }
     }
 
-    /**
-     * This function is called when a Chord Node leaves the ring or is found to be dead.
-     *
-     * @param n NodeInfo object storing details of the Chord Node instance
-     * @return null
-     */
     public void removeNodeFromRing(NodeInfo n) throws RemoteException {
         synchronized (this) {
             if (n == null || nodes.get(n.nodeID) == null)
@@ -514,15 +200,8 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
         }
     }
 
-    /**
-     * This function finds the new successor node if the current successor node is found to be dead or has crashed.
-     *
-     * @param n         NodeInfo object storing details of the Chord Node instance whose successor is to be found
-     * @param dead_node NodeInfo object of the Chord Node instance which is dead
-     * @return succ NodeInfo object of the new successor Chord Node
-     */
     public NodeInfo findNewSuccessor(NodeInfo n, NodeInfo dead_node) throws RemoteException {
-        NodeInfo succ = null;
+        NodeInfo succ;
         System.out.println("Received update from node " + n.nodeID + " that node " + dead_node.nodeID + " is dead.");
         try {
             removeNodeFromRing(dead_node);
@@ -536,12 +215,6 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
         return succ;
     }
 
-    /**
-     * This function is called when a Chord Node has successfully joined the Chord ring
-     *
-     * @param nodeID The node identifier of the Chord Node that joined successfully
-     * @return null
-     */
     public void acknowledgeNodeJoin(int nodeID) throws RemoteException {
         synchronized (this) {
             System.out.println("Join acknowledge: New node joined Chord Ring with identifier " + nodeID);
@@ -550,11 +223,6 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
         }
     }
 
-    /**
-     * This function displays the details of the Chord Nodes in the ring
-     *
-     * @return null
-     */
     public void displayNodesInRing() throws RemoteException {
         Iterator<NodeInfo> i = nodeList.iterator();
         System.out.println("*********************List of nodes in the ring********************");
@@ -567,40 +235,12 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
         }
     }
 
-    /**
-     * This function returns the number of nodes currently in the ring
-     *
-     * @return int Number of nodes in the ring
-     */
     public int getNodesInRing() throws RemoteException {
         return nodeList.size();
     }
 
-    /**
-     * Getter function for the list of node identifiers assigned
-     *
-     * @return ArrayList List of the node identifiers already assigned
-     */
-    public ArrayList<Integer> getNodeIds() throws RemoteException {
-        return nodeIds;
-    }
 
     @Override
-    /**
-     * This function return the maximum possible nodes allowed in the Chord ring
-     * @return int Maximum number of nodes allowed in the ring
-     */
-    public int getMaxNodesInRing() throws RemoteException {
-        return maxNodes;
-    }
-
-    @Override
-    /**
-     * The function generates a unique identifier for the Chord Node instance using SHA-1 algorithm
-     * @param key The key with which the unique identifer is to be generated using SHA-1
-     * @param maxNodes The maximum number of nodes in the ring
-     * @return int Unique identifer for the Chord Node
-     */
     public int generate_ID(String key, int maxNodes) throws RemoteException, NoSuchAlgorithmException {
         MessageDigest md = MessageDigest.getInstance("SHA-1");
         md.reset();
@@ -610,12 +250,6 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
         return Math.abs(hashValue.intValue()) % maxNodes;
     }
 
-    /**
-     * This function checks if a particular zone of the Chord ring is full ,i.e. all the slots are occupied by CHord Node instances
-     *
-     * @param zoneID The zone number in the Chord ring. Allowed range is 0 to (m-1).
-     * @return is_filled Boolean value indicating is zone is full or not. True indicates full.
-     */
     public boolean isZoneFilled(int zoneID) throws RemoteException {
         int i;
         boolean is_filled = true;

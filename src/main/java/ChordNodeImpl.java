@@ -1,4 +1,4 @@
-/**
+/*
  * This class serves as the starting point for any Chord Node instance that will be spawned and
  * has all the associated function to support various operations.
  */
@@ -19,53 +19,41 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-//import java.text.SimpleDateFormat;
 
 public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
-    public static final int RUNSTABILIZEPERIOD = 5000; // 5 seconds
-    public static final int RUNFIXFINGERPERIOD = 5000; // 5 seconds
+    private static final int StabilizePeriod = 5000; // 5 seconds
+    private static final int FixFingerPeriod = 5000; // 5 seconds
     private static final long serialVersionUID = 1L;
-    public static int num = 0;  // used during rmi registry binding
-    // m and maxNodes in ChordNodeImpl should be same as
-    // m and maxNodes in BootStrapNodeImpl.
     public static int m = 5;
     public static int maxNodes = 32; // maxNodes = 2^m
-    public static int ftsize = 2 * m - 1; // finger table size
     public static BootStrapNode bootstrap;
-    public static String bootstrapServer = null;
-    public static int fix_finger_count = 0; // store the id of next finger entry to update
-    public static long totalLatency_insert = 0; // total time for all insert operations
-    public static long totalLatency_query = 0; // total time for all query operations
-    public static long totalLatency_join = 0; // total time to join operation
-    // Variables to assist in final result and metric collection for hop count
-    public static int totalHopCount_insert = 0;
-    public static int totalHopCount_query = 0;
-    public static int totalHopCount_join = 0;
-    static Timer timerStabilize = new Timer();
-    static Timer timerFixFinger = new Timer();
+    private static int num = 0;  // used during rmi registry binding
+    private static int fingerTableSize = 2 * m - 1; // finger table size
+    private static int fix_finger_count = 0; // store the id of next finger entry to update
+    private static Timer timerStabilize = new Timer();
+    private static Timer timerFixFinger = new Timer();
     private static Logger log = null;
-    public ChordNode cn;
-    public FingerTableEntry[] fingertable = null; //Data Structure to store the finger table for the Chord Node
     public HashMap<Integer, HashMap<String, String>> data = new HashMap<Integer, HashMap<String, String>>();//Data store for each Chord Node instance
-    public ReentrantReadWriteLock data_rwlock = new ReentrantReadWriteLock();
     public NodeInfo node;
-    public NodeInfo predcessor;
-    public ArrayList<HashMap<String, Result>> metrics;
+    private FingerTableEntry[] fingertable = null; //Data Structure to store the finger table for the Chord Node
+    private ReentrantReadWriteLock data_rwlock = new ReentrantReadWriteLock();
+    private NodeInfo predecessor;
+    private ArrayList<HashMap<String, Result>> metrics;
 
     protected ChordNodeImpl(NodeInfo node) throws RemoteException {
         super();
         this.node = node;
-        this.predcessor = null;
-        this.fingertable = new FingerTableEntry[ftsize];
+        this.predecessor = null;
+        this.fingertable = new FingerTableEntry[fingerTableSize];
         this.metrics = new ArrayList<HashMap<String, Result>>();
     }
 
     public ChordNodeImpl() throws RemoteException {
         super();
         this.node = null;
-        this.predcessor = null;
-        this.fingertable = new FingerTableEntry[ftsize];
+        this.predecessor = null;
+        this.fingertable = new FingerTableEntry[fingerTableSize];
         this.metrics = new ArrayList<HashMap<String, Result>>();
     }
 
@@ -73,15 +61,15 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
      * Starting point for the Chord Node instances
      *
      * @param args variable length command line argument list
-     * @return null
+     * @throws RemoteException Due to RMI.
      */
     public static void main(String[] args) throws RemoteException {
-        ChordNode c = null;
-        ChordNodeImpl cni = null;
+        ChordNode c;
+        ChordNodeImpl cni;
         boolean running = true;
         long startTime, endTime, timetaken;
         Result result = new Result();
-        HashMap<String, Result> met = null;
+        HashMap<String, Result> met;
 
         if (args.length < 3) {
             System.out.println("Usage : java ChordNodeImpl <ip address of current node> <ipaddress of bootstrap> <zone-ID(range 0-m)>");
@@ -95,8 +83,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
         // creates file appender
         FileAppender fileAppender = new FileAppender();
-        //String dt = new SimpleDateFormat("MM-dd-yyy hh-mm-ss").format(new Date());
-        //fileAppender.setFile("logs/chord_" + dt + ".log");
+
         fileAppender.setFile("logs/chord.log");
         fileAppender.setLayout(layout);
         fileAppender.activateOptions();
@@ -149,10 +136,10 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
             cni.node = nodes.get(0);
             FingerTableEntry fte = new FingerTableEntry((cni.node.nodeID + 1) % maxNodes, nodes.get(1));
             cni.fingertable[0] = fte;
-            cni.predcessor = nodes.get(2);
+            cni.predecessor = nodes.get(2);
             log.info("My ID: " + cni.node.nodeID);
             log.info("Successor ID - " + cni.fingertable[0].successor.nodeID);
-            log.info("Predcessor ID - " + cni.predcessor.nodeID);
+            log.info("Predcessor ID - " + cni.predecessor.nodeID);
         } else {
             log.error("Join unsuccessful");
             return;
@@ -207,7 +194,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                     getHops.latency = timetaken;
                     log.info("Hop Count for get key operation: " + getHops.hopCount);
                     log.info("Time taken for get key operation: " + timetaken + "ms");
-                    met = new HashMap<String, Result>();
+                    met = new HashMap<>();
                     met.put("GET", getHops);
                     cni.metrics.add(met);
                     break;
@@ -219,7 +206,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                     Result insHops = new Result();
                     startTime = System.currentTimeMillis();
                     res = cni.insert_key(key, value, insHops);
-                    if (res == true)
+                    if (res)
                         System.out.println(key + ": " + value + " successfully inserted.");
                     else
                         System.out.println("Insertion unsuccessful.");
@@ -228,7 +215,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                     insHops.latency = timetaken;
                     log.info("Hop Count for insert key operation: " + insHops.hopCount);
                     log.info("Time taken for insert key operation: " + timetaken + "ms");
-                    met = new HashMap<String, Result>();
+                    met = new HashMap<>();
                     met.put("INSERT", insHops);
                     cni.metrics.add(met);
                     break;
@@ -292,69 +279,52 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
     }
 
     @Override
-    /**
-     * This function is used to determine the successor node for a given node identifier
-     * @param id The node identifer whose successor is to be found
-     * @param result Result object to assist in metrics collection
-     * @return newNode NodeInfo object containing details of successor node
-     */
     public NodeInfo find_successor(int id, Result result) throws RemoteException {
-        log.debug("In find_successor for id: " + id);
-        NodeInfo newNode = null;
-
-        newNode = find_predecessor(id, result);
-
-        log.debug("Predecessor for id: " + id + " is " + newNode.nodeID);
-
+        log.debug("Searching for the successor of id: " + id);
+        NodeInfo newNode = find_predecessor(id, result);
         try {
             ChordNode c = (ChordNode) Naming.lookup("rmi://" + newNode.ipaddress + "/ChordNode_" + newNode.port);
-            if (newNode.nodeID != this.node.nodeID)
+            if (newNode.nodeID != this.node.nodeID) {
                 result.hopCount++;
+            }
             newNode = c.get_successor();
             log.debug("Successor for id: " + id + " is " + newNode.nodeID + "\n");
         } catch (Exception e) {
             log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
             return null;
         }
-
         return newNode;
     }
 
     @Override
-    /**
-     * This function is used to find the predecessor node for a given node identifier
-     * @param id The node identifier whose predecessor is to be found
-     * @param result Result object to assist in metrics collection
-     * @return nn NodeInfo object containing details of predecessor node
-     */
     public NodeInfo find_predecessor(int id, Result result) throws RemoteException {
         NodeInfo nn = this.node;
         int myID = this.node.nodeID;
         int succID = this.get_successor().nodeID;
         ChordNode c = null;
 
-        // loop till id is not in the circular range (nn, successor(nn))
-        // at each iteration, update nn = nn.closest_preceding_finger(id)
-        // when loop ends, nn will be id's predecessor
+
         while ((myID >= succID && (myID >= id && succID < id)) || (myID < succID && (myID >= id || succID < id))) {
             try {
                 log.debug("Looking for closest preceding finger of id: " + id + " in node: " + nn.nodeID);
                 if (nn == this.node) {
                     nn = closest_preceding_finger(id);
                 } else {
-                    if (nn.nodeID != this.node.nodeID)
+                    if (nn.nodeID != this.node.nodeID) {
                         result.hopCount++;
+                    }
+                    assert c != null;
                     nn = c.closest_preceding_finger(id);
                 }
 
                 myID = nn.nodeID;
                 c = (ChordNode) Naming.lookup("rmi://" + nn.ipaddress + "/ChordNode_" + nn.port);
                 succID = c.get_successor().nodeID;
-                if (nn.nodeID != this.node.nodeID)
+                if (nn.nodeID != this.node.nodeID) {
                     result.hopCount++;
-
+                }
             } catch (Exception e) {
-                log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + e.getStackTrace().toString(), e);
+                log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
                 return null;
             }
         }
@@ -363,63 +333,39 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
     }
 
     @Override
-    /**
-     * This function is used to determine the closest preceding finger(CPF) of the given node identifier
-     * @param id Node identifier whose CPF is to be found.
-     * @return NodeInfo NodeInfo object containing details of the CPF node
-     */
     public NodeInfo closest_preceding_finger(int id) {
         int myID = node.nodeID;
-        int midID = fingertable[m - 1].successor.nodeID;
-
-        for (int i = ftsize - 1; i >= 0; i--) {
+        for (int i = fingerTableSize - 1; i >= 0; i--) {
             int succID = fingertable[i].successor.nodeID;
             if ((myID < id && (succID > myID && succID < id)) || (myID >= id && (succID > myID || succID < id))) {
                 return fingertable[i].successor;
             }
         }
-
         return this.node;
     }
 
-    /**
-     * This function is called immediately after the join to initialize data structures specifically the finger table entries to assist in routing
-     *
-     * @param n      The successor node of the current Chord Node instance
-     * @param result Result object to assist in metrics collection
-     * @return null
-     */
     public void init_finger_table(NodeInfo n, Result result) throws RemoteException {
-        ChordNode c = null;
-
+        ChordNode c;
         try {
             c = (ChordNode) Naming.lookup("rmi://" + n.ipaddress + "/ChordNode_" + n.port);
 
-            // initialize finger table
             int myID = this.node.nodeID;
-            for (int i = 0; i < ftsize - 1; i++) {
+            for (int i = 0; i < fingerTableSize - 1; i++) {
                 int nextID = fingertable[i].successor.nodeID;
 
-                // check if the (i+1)th finger table entry should be same as ith entry
                 if ((myID >= nextID && (fingertable[i + 1].start >= myID || fingertable[i + 1].start <= nextID)) ||
                         (myID < nextID && (fingertable[i + 1].start >= myID && fingertable[i + 1].start <= nextID))) {
 
                     fingertable[i + 1].successor = fingertable[i].successor;
-
-                } else { // else invoke find_successor
-
-                    if (n.nodeID != this.node.nodeID)
+                } else {
+                    if (n.nodeID != this.node.nodeID) {
                         result.hopCount++;
-
+                    }
                     NodeInfo s = c.find_successor(fingertable[i + 1].start, result);
 
-                    // check if FTE needs to be updated to s, or it should continue pointing to me
                     int myStart = fingertable[i + 1].start;
                     int succ = s.nodeID;
                     int mySucc = fingertable[i + 1].successor.nodeID;
-
-                    //System.out.println("myStart\tsucc\tmySucc");
-                    //System.out.println(myStart + "\t" + succ + "\t" + mySucc);
 
                     if (myStart > succ) {
                         succ += maxNodes;
@@ -434,66 +380,38 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                 log.debug("FTE " + (i + 1) + " set as: " + fingertable[i + 1].start + " || " + fingertable[i + 1].successor.nodeID);
             }
 
-            // set predecessor of successor as me
             if (n.nodeID != this.node.nodeID) {
                 result.hopCount++;
             }
             c.set_predecessor(this.node);
             log.info("predecessor of node " + n.nodeID + " set as " + this.node.nodeID);
-
         } catch (MalformedURLException | NotBoundException e) {
-            log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + e.getStackTrace().toString(), e);
-
-            // If finger table initialization couldn't complete.
-            // Stabilize and fix fingers will take care of it eventually.
+            log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
         }
-
     }
 
-    /**
-     * This function is used to update other nodes when a Chord Node voluntarily leaves the ring/network
-     *
-     * @param result Result object to assist in metrics collection
-     * @return null
-     */
     public void update_others_before_leave(Result result) throws RemoteException {
-        log.info("updating finger table of other nodes before leaving");
-
-        for (int i = 1; i <= ftsize; i++) {
+        for (int i = 1; i <= fingerTableSize; i++) {
             int id = this.node.nodeID - (int) Math.pow(2, i - 1) + 1;
             if (id < 0) {
                 id += maxNodes;
             }
-
             NodeInfo p = find_predecessor(id, result);
-            log.debug("Predecessor of id: " + id + " is " + p.nodeID);
-            log.debug("iteration " + i + ": try to update Finger table entry " + (i - 1) + " of node " + p.nodeID + " with my successor.");
-
             try {
                 ChordNode c = (ChordNode) Naming.lookup("rmi://" + p.ipaddress + "/ChordNode_" + p.port);
                 c.update_finger_table_leave(this.node, i - 1, this.get_successor(), result);
                 if (this.node.nodeID != p.nodeID)
                     result.hopCount++;
             } catch (Exception e) {
-                log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + e.getStackTrace().toString(), e);
+                log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
             }
         }
     }
 
-    /**
-     * This function is used to update the finger table entries of Chord nodes when a node leaves the network/ring
-     *
-     * @param t      The NodeInfo object of the node which departs from the ring
-     * @param i      The ith finger table entry to be updated
-     * @param s      The NodeInfo object to be set as successor in the finger table entry
-     * @param result Result object to assist in metrics collection
-     * @return null
-     */
     public void update_finger_table_leave(NodeInfo t, int i, NodeInfo s, Result result) throws RemoteException {
         if (fingertable[i].successor.nodeID == t.nodeID && t.nodeID != s.nodeID) {
             fingertable[i].successor = s;
-            log.debug("Node " + t.nodeID + " departing. Finger table entry " + i + " successfully moditfied to " + s.nodeID);
-            NodeInfo p = predcessor;
+            NodeInfo p = predecessor;
 
             try {
                 ChordNode c = (ChordNode) Naming.lookup("rmi://" + p.ipaddress + "/ChordNode_" + p.port);
@@ -501,7 +419,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                 if (this.node.nodeID != p.nodeID)
                     result.hopCount++;
             } catch (Exception e) {
-                log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + e.getStackTrace().toString(), e);
+                log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
             }
         }
     }
@@ -510,32 +428,23 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
     (1) Check if successor is dead (try pinging/reaching it twice).
 	(2) Find the next finger table entry that does not point either to me or to the dead successor.
 	(3) Once such a finger table entry is found, query that node for its predecessor.
-	(3a) In a loop, follow the predecessor chain till you find the node whose predcessor is our dead succesor.
-	(3b) Set my succesor as that node and set the predessor of that node as me.
+	(3a) In a loop, follow the predecessor chain till you find the node whose predecessor is our dead successor.
+	(3b) Set my successor as that node and set the predecessor of that node as me.
 	(3c) Inform bootstrap to update its list of active chord nodes.
 	(4) If no such finger table entry is found, contact bootstrap to return a different successor.
 	*/
 
     @Override
-    /**
-     * Dummy Function to send a heart beat message to verify status
-     */
     public void send_beat() throws RemoteException {
         log.debug("Acknowledged heart beat message.");
-        return;
     }
 
     @Override
-    /**
-     * The stabilize function is used to periodically verify the current nodes immediate successor and tell the successor about itself
-     * @param result Result object to assist in metrics collection
-     * @return null
-     */
     public void stabilize(Result result) {
         log.debug("Stabilization running on chord Node" + this.node.nodeID);
 
         NodeInfo successorNodeInfo = null, tempNodeInfo = null;
-        ChordNode successor = null, temp = null;
+        ChordNode successor, temp;
 
         try {
             successorNodeInfo = get_successor();
@@ -549,176 +458,132 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                 successor.send_beat();
             }
         } catch (Exception e) {
-            successor = null;
-            log.error("Failed Heart beat message. Error in stabilize: " + e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + e.getStackTrace().toString(), e);
-
-            // Second attempt for heart beat
+            log.error("Failed Heart beat message. Error in stabilize: " + e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
             try {
+                assert successorNodeInfo != null;
                 successor = (ChordNode) Naming.lookup("rmi://" + successorNodeInfo.ipaddress + "/ChordNode_" + successorNodeInfo.port);
                 successor.send_beat();
             } catch (Exception e1) {
                 successor = null;
-                log.error("Failed Heart beat message. Error in stabilize: " + e1.getClass() + ": " + e1.getMessage() + ": " + e1.getCause() + "\n" + e1.getStackTrace().toString(), e1);
+                log.error("Failed Heart beat message. Error in stabilize: " + e1.getClass() + ": " + e1.getMessage() + ": " + e1.getCause() + "\n" + Arrays.toString(e1.getStackTrace()), e1);
             }
         }
-
         // Current successor is dead. Get a new one.
         if (successor == null) {
-            log.error("Failed to contact succesor. Declare succesor dead");
-
-            // iterate over fingertable entries till you find a node that is not me and not the dead succesor
+            log.error("Failed to contact successor. Declare successor dead");
+            // iterate over fingertable entries till you find a node that is not me and not the dead successor
             int i;
-            for (i = 1; i < ftsize; i++) {
+            for (i = 1; i < fingerTableSize; i++) {
                 tempNodeInfo = fingertable[i].successor;
                 if (tempNodeInfo.nodeID != successorNodeInfo.nodeID && tempNodeInfo.nodeID != node.nodeID)
                     break;
             }
-
-            if (i != ftsize) {
-                log.debug("Following predecessor chain starting from node " + tempNodeInfo.nodeID);
-
-                // follow the predecessor chain from tempNodeInfo
-                while (true) {
+            if (i != fingerTableSize) {
+                assert tempNodeInfo != null;
+                while (true) {// follow the predecessor chain from tempNodeInfo
                     try {
                         log.debug("Current node in predecessor chain " + tempNodeInfo.nodeID);
                         temp = (ChordNode) Naming.lookup("rmi://" + tempNodeInfo.ipaddress + "/ChordNode_" + tempNodeInfo.port);
                         if (temp.get_predecessor().nodeID == successorNodeInfo.nodeID) {
                             temp.set_predecessor(this.node);
                             this.set_successor(tempNodeInfo);
-                            log.debug("New succesor is " + tempNodeInfo.nodeID);
+                            log.debug("New successor is " + tempNodeInfo.nodeID);
                             break;
                         }
                         tempNodeInfo = temp.get_predecessor();
                     } catch (Exception e) {
-                        log.error("Error in stabilize while following predecessor chain: " + e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + e.getStackTrace().toString(), e);
+                        log.error("Error in stabilize while following predecessor chain: " + e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
                         break;
                     }
                 }
-
-                try {
-                    //notify the bootstrap of node exit
+                try {//notify the bootstrap of node exit
                     bootstrap.removeNodeFromRing(successorNodeInfo);
 
                 } catch (RemoteException e) {
-                    log.error("Error in notifying bootstrap about dead node: " + e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + e.getStackTrace().toString(), e);
-                    return;
+                    log.error("Error in notifying bootstrap about dead node: " + e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
                 }
-
             } else {
-                // My finger table does not include a different node.
-                // Ask bootstrap for a new successor.
-                try {
+                try {// My finger table does not include a different node. Request from bootstrap for a new successor.
                     NodeInfo new_suc = bootstrap.findNewSuccessor(this.node, successorNodeInfo);
                     this.set_successor(new_suc);
                     temp = (ChordNode) Naming.lookup("rmi://" + new_suc.ipaddress + "/ChordNode_" + new_suc.port);
                     temp.set_predecessor(this.node);
                 } catch (Exception e) {
-                    log.error("Error in requesting new succesor from bootstrap: " + e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + e.getStackTrace().toString(), e);
-                    return;
+                    log.error("Error in requesting new successor from bootstrap: " + e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
                 }
             }
-        }
-
-        // Current successor is alive. Ensure that you are your successor's predecessor.
-        else {
+        } else {// Current successor is alive. Ensure that you are your successor's predecessor.
             NodeInfo x = null;
             try {
                 x = successor.get_predecessor();
                 if (this.node.nodeID != successorNodeInfo.nodeID)
                     result.hopCount++;
             } catch (RemoteException e) {
-                log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + e.getStackTrace().toString(), e);
+                log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
             }
-
             if ((x != null) && (inCircularInterval(x.nodeID, this.node.nodeID, this.fingertable[0].successor.nodeID)))
                 this.fingertable[0].successor = x;
 
-            try {
-                // Ensure that you are your successor's predecessor is set correctly.
-                if (successorNodeInfo.nodeID == this.node.nodeID)
+            try {// Ensure that you are your successor's predecessor is set correctly.
+                if (successorNodeInfo.nodeID == this.node.nodeID) {
                     successor.notify_successor(this.node);
+                }
             } catch (RemoteException e) {
-                log.error("Error in calling the successor's notifyall" + e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + e.getStackTrace().toString(), e);
+                log.error("Error in calling the successor's notifyall" + e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
             }
         }
 
     }
 
     @Override
-    /**
-     * This function notifes the other nodes that it might be their predecessor
-     * @param n NodeInfo object of the probable successor node to notify
-     * @return null
-     */
     public void notify_successor(NodeInfo n) {
-        if (this.predcessor == null)
-            this.predcessor = n;
-        if (inCircularInterval(n.nodeID, this.predcessor.nodeID, this.node.nodeID))
-            this.predcessor = n;
+        if (this.predecessor == null)
+            this.predecessor = n;
+        if (inCircularInterval(n.nodeID, this.predecessor.nodeID, this.node.nodeID))
+            this.predecessor = n;
 
     }
 
-    /**
-     * This function checks if a node identifer is in the circular interval of two other nodes
-     *
-     * @param x The node identifier which is to verified
-     * @param a The start node in the circular interval
-     * @param b The end node in the circular interval
-     * @return val true if node is in circular interval, else false
-     */
     public boolean inCircularInterval(int x, int a, int b) {
         boolean val = false;
         if (a == b)
             val = true;
-        else if (a < b) {
-            // normal range
+        else if (a < b) {// normal range
             if ((x > a) && (x < b))
                 val = true;
-        } else {
-            // when on one current node is after 0 but predecessor is before 0
-            if ((x > a) && (x < (b + maxNodes))) {
-                // in ring before 0
+        } else { // when on one current node is after 0 but predecessor is before 0
+            if ((x > a) && (x < (b + maxNodes))) {// in ring before 0
                 val = true;
-            } else if ((x < b) && ((x + maxNodes) > a)) {
-                // in ring after 0
+            } else if ((x < b) && ((x + maxNodes) > a)) {// in ring after 0
                 val = true;
             }
         }
         return val;
     }
 
-    public boolean inCircularIntervalStartInclude(int x, int a, int b) {
-        return (x == a) ? true : inCircularInterval(x, a, b);
-    }
-
     public boolean inCircularIntervalEndInclude(int x, int a, int b) {
-        return (x == b) ? true : inCircularInterval(x, a, b);
+        return (x == b) || inCircularInterval(x, a, b);
     }
 
     @Override
-    /**
-     * This function is used to periodically refresh finger table entries
-     * @param result Result object to assist in metrics collection
-     * @return null
-     */
     public void fix_fingers(Result result) throws RemoteException {
         log.debug("Fix_fingers running on chord Node " + node.nodeID);
-
         //periodically fix all fingers
         fix_finger_count = fix_finger_count + 1;
-        if (fix_finger_count == ftsize)
+        if (fix_finger_count == fingerTableSize) {
             fix_finger_count = 1;
+        }
         log.debug("Running fix_finger with i: " + fix_finger_count);
         fingertable[fix_finger_count].successor = find_successor(fingertable[fix_finger_count].start, result);
     }
 
-    /**
+    /*
      * This function is called after contacting the BootStrap server and obtaining the successor and predecessor nodes to initialize finger table and update other nodes after joining.
      *
      * @param result Result object to assist in metrics collection
      * @return null
      */
-    public void run(final Result result) {
+    private void run(final Result result) {
         ChordNode c;
         NodeInfo suc = fingertable[0].successor;
 
@@ -738,7 +603,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
             FingerTableEntry fte = new FingerTableEntry(start, succ);
             fingertable[i] = fte;
         }
-        for (j = m - 2; i < ftsize; i++, j--) {
+        for (j = m - 2; i < fingerTableSize; i++, j--) {
             int start = (this.node.nodeID + maxNodes - (int) Math.pow(2, j)) % maxNodes;
             NodeInfo succ = this.node;
             FingerTableEntry fte = new FingerTableEntry(start, succ);
@@ -775,30 +640,27 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
             log.info("Starting key migration");
             try {
                 c = (ChordNode) Naming.lookup("rmi://" + suc.ipaddress + "/ChordNode_" + suc.port);
-                c.migrate_keys(this.predcessor, this.node, result);
+                c.migrate_keys(this.predecessor, this.node, result);
                 if (this.node.nodeID != suc.nodeID)
                     result.hopCount++;
             } catch (Exception e) {
-                log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + e.getStackTrace().toString(), e);
+                log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
             }
 
-            try {
-                // set successor of predecessor as me
-                c = (ChordNode) Naming.lookup("rmi://" + predcessor.ipaddress + "/ChordNode_" + predcessor.port);
+            try {// set successor of predecessor as me
+                c = (ChordNode) Naming.lookup("rmi://" + predecessor.ipaddress + "/ChordNode_" + predecessor.port);
                 c.set_successor(this.node);
-                log.info("successor of node " + predcessor.nodeID + " set as " + this.node.nodeID);
+                log.info("successor of node " + predecessor.nodeID + " set as " + this.node.nodeID);
 
-                if (predcessor.nodeID != this.node.nodeID)
+                if (predecessor.nodeID != this.node.nodeID)
                     result.hopCount++;
 
             } catch (Exception e) {
-                log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + e.getStackTrace().toString(), e);
-                // Failed to update predcessor, stabilize will eventually handle
+                log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
             }
         }
 
         log.info("Done with node initialization");
-
         try {
             bootstrap.acknowledgeNodeJoin(this.node.nodeID);
             endTime = System.currentTimeMillis();
@@ -806,41 +668,40 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
             result.latency = timetaken;
             log.info("Hop Count while joining Chord network: " + result.hopCount);
             log.info("Time taken for node to join the Chord network: " + timetaken + "ms");
-            totalLatency_join = timetaken;
-            totalHopCount_join = result.hopCount;
-            HashMap<String, Result> m = new HashMap<String, Result>();
+            HashMap<String, Result> m = new HashMap<>();
             m.put("JOIN", result);
             this.metrics.add(m);
         } catch (Exception e) {
+            log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
         }
 
 
-        //Set the timer to run notify every RUNSTABILIZEPERIOD
+        //Set the timer to run notify every StabilizePeriod
         timerStabilize.scheduleAtFixedRate(new TimerTask() {
             public void run() {
-                stabilize(result);      //TODO check if needed to be final!
+                stabilize(result);
             }
-        }, new Date(System.currentTimeMillis()), ChordNodeImpl.RUNSTABILIZEPERIOD);
+        }, new Date(System.currentTimeMillis()), ChordNodeImpl.StabilizePeriod);
 
-        //Set the timer to run notify every RUNFIXFINGERPERIOD
+        //Set the timer to run notify every FixFingerPeriod
         timerFixFinger.scheduleAtFixedRate(new TimerTask() {
             public void run() {
                 try {
                     fix_fingers(result);
                 } catch (Exception e) {
-                    log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + e.getStackTrace().toString(), e);
+                    log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
                 }
             }
-        }, new Date(System.currentTimeMillis()), ChordNodeImpl.RUNFIXFINGERPERIOD);
+        }, new Date(System.currentTimeMillis()), ChordNodeImpl.FixFingerPeriod);
     }
 
     public NodeInfo get_predecessor() throws RemoteException {
-        return this.predcessor;
+        return this.predecessor;
     }
 
     @Override
     public void set_predecessor(NodeInfo p) throws RemoteException {
-        this.predcessor = p;
+        this.predecessor = p;
     }
 
     @Override
@@ -853,32 +714,16 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
         this.fingertable[0].successor = n;
     }
 
-    public NodeInfo get_node_info() throws RemoteException {
-        return this.node;
-    }
-
     @Override
-    /**
-     * This function is used to print the finger table entries to verify if they are being set properly
-     * @param null
-     * @return null
-     */
     public void print_finger_table() throws RemoteException {
-        System.out.println("My ID: " + node.nodeID + " Predecessor ID: " + (predcessor == null ? "NULL" : predcessor.nodeID));
+        System.out.println("My ID: " + node.nodeID + " Predecessor ID: " + (predecessor == null ? "NULL" : predecessor.nodeID));
         System.out.println("Index\tStart\tSuccessor ID\tIP Address\tRMI Identifier");
-        for (int i = 0; i < ftsize; i++) {
+        for (int i = 0; i < fingerTableSize; i++) {
             System.out.println((i + 1) + "\t" + fingertable[i].start + "\t" + fingertable[i].successor.nodeID + "\t\t" + fingertable[i].successor.ipaddress + "\t" + fingertable[i].successor.port);
         }
     }
 
     @Override
-    /**
-     * Wrapper function to insert a new key-value pair
-     * @param key The key for the data
-     * @param value The value associated to the key
-     * @param result result object to assist in metric collection
-     * @return boolean Indiator to check if operation was successful or not
-     */
     public boolean insert_key(String key, String value, Result result) {
         try {
             long endTime, startTime, timetaken;
@@ -892,8 +737,6 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                 boolean flag = c.insert_key_local(keyID, key, value, result);
                 endTime = System.currentTimeMillis();
                 timetaken = endTime - startTime;
-                totalLatency_insert += timetaken;
-                totalHopCount_insert += result.hopCount;
                 result.latency = timetaken;
                 log.info("Hop Count for insert key operation: " + result.hopCount);
                 log.info("Time taken for insert key operation: " + timetaken + "ms");
@@ -903,25 +746,17 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                 endTime = System.currentTimeMillis();
                 timetaken = endTime - startTime;
                 result.latency = timetaken;
-                totalLatency_insert += timetaken;
-                totalHopCount_insert += result.hopCount;
                 log.info("Hop Count for insert key operation: " + result.hopCount);
                 log.info("Time taken for insert key operation: " + timetaken + "ms");
                 return flag;
             }
         } catch (Exception e) {
-            log.error("Error in inserting keys" + e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + e.getStackTrace().toString(), e);
+            log.error("Error in inserting keys" + e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
             return false;
         }
     }
 
     @Override
-    /**
-     * Wrapper Function to delete data tagged to a key
-     * @param key Key to be deleted
-     * @param result Result object to assist in metric collection
-     * @return boolean Indiator to check if operation was successful or not
-     */
     public boolean delete_key(String key, Result result) {
         try {
             int keyID = generate_ID(key, maxNodes);
@@ -935,18 +770,12 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                 return delete_key_local(keyID, key, result);
             }
         } catch (Exception e) {
-            log.error("Error in deleting key" + e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + e.getStackTrace().toString(), e);
+            log.error("Error in deleting key" + e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
             return false;
         }
     }
 
     @Override
-    /**
-     * Wrapper function to get value associated to a key
-     * @param key Key for which data is to be retrieved
-     * @param result result object to assist in metrics collection
-     * @param val The data associated to the key
-     */
     public String get_value(String key, Result result) {
         try {
             long endTime, startTime, timetaken;
@@ -960,75 +789,47 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                 endTime = System.currentTimeMillis();
                 timetaken = endTime - startTime;
                 log.info("Time taken for query key operation: " + timetaken + "ms");
-                totalLatency_query += timetaken;
-                totalHopCount_query += result.hopCount;
                 return val;
             } else {
                 String val = get_key_local(keyID, key, result);
                 endTime = System.currentTimeMillis();
                 timetaken = endTime - startTime;
                 log.info("Time taken for query key operation: " + timetaken + "ms");
-                totalLatency_query += timetaken;
-                totalHopCount_query += result.hopCount;
                 return val;
             }
         } catch (Exception e) {
-            log.error("Error in get value of key" + e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + e.getStackTrace().toString(), e);
+            log.error("Error in get value of key" + e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
             return null;
         }
     }
 
     @Override
-    /**
-     * Function to insert key value pair in current Chord Node instance
-     * @param keyID Hashed valued for the key
-     * @param key Key to be inserted
-     * @param value Value associated to the key
-     * @param result result object to assist in metric collection
-     * @param boolean Indiator to check if operation was successful or not
-     */
     public boolean insert_key_local(int keyID, String key, String value, Result result) throws RemoteException {
         boolean res = true;
 
         data_rwlock.writeLock().lock();
 
         if (!inCircularIntervalEndInclude(keyID, get_predecessor().nodeID, node.nodeID)) {
-            // keyID does not lie in my range.
-            // Maybe ring topology has changed while this request was routed to me.
-            // Query the ring again for this key.
             data_rwlock.writeLock().unlock();
             res = insert_key(key, value, result);
         } else {
             HashMap<String, String> entry = data.get(keyID);
             if (entry == null) {
-                entry = new HashMap<String, String>();
+                entry = new HashMap<>();
                 data.put(keyID, entry);
             }
             entry.put(key, value);
-
             data_rwlock.writeLock().unlock();
-
             log.info("Inserted key - " + key + " with value - " + value);
         }
         return res;
     }
 
     @Override
-    /**
-     * Function to delete key value pair in current Chord Node instance
-     * @param keyID Hashed valued for the key
-     * @param key Key to be deleted
-     * @param result result object to assist in metric collection
-     * @param boolean Indiator to check if operation was successful or not
-     */
     public boolean delete_key_local(int keyID, String key, Result result) throws RemoteException {
         boolean res = true;
-
         data_rwlock.writeLock().lock();
         if (!inCircularIntervalEndInclude(keyID, get_predecessor().nodeID, node.nodeID)) {
-            // keyID does not lie in my range.
-            // Maybe ring topology has changed while this request was routed to me.
-            // Query the ring again for this key.
             data_rwlock.writeLock().unlock();
             res = delete_key(key, result);
         } else {
@@ -1046,54 +847,27 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
     }
 
     @Override
-    /**
-     * Function to retieve key value pair in current Chord Node instance
-     * @param keyID Hashed valued for the key
-     * @param key Key to be retrieved
-     * @param result result object to assist in metric collection
-     * @param boolean Indiator to check if operation was successful or not
-     */
     public String get_key_local(int keyID, String key, Result result) throws RemoteException {
         String val = null;
 
         data_rwlock.readLock().lock();
 
         HashMap<String, String> entry = data.get(keyID);
-        if (entry != null)
+        if (entry != null) {
             val = entry.get(key);
+        }
 
         data_rwlock.readLock().unlock();
-
-        // Key does not lie in my range.
-        // Maybe the key migrated due to a recent node join,
-        // and this is an old query that has reached me late.
-        // Query the ring again for this key.
-        if (entry == null && !inCircularIntervalEndInclude(keyID, get_predecessor().nodeID, node.nodeID))
+        if (entry == null && !inCircularIntervalEndInclude(keyID, get_predecessor().nodeID, node.nodeID)) {
             val = get_value(key, result);
-
+        }
         return val;
     }
 
     @Override
-    /**
-     * This function is called when a CHord Node leaves the ring
-     * @param result result object to assist in metric collection
-     * @return boolean Status of leave operation
-     */
     public boolean leave_ring(Result result) throws RemoteException {
-        ChordNode c = null;
+        ChordNode c;
         data_rwlock.writeLock().lock();
-		
-		/* Order of operations when a node leaves the ring: 
-		1) Migrate keys to successor.
-		2) Inform successor.
-		3) Inform predecessor.
-		4) Inform bootstrap.
-		5) Inform other nodes.
-		
-		Note: Any key-related requests that are routed to this node 
-		between steps (1) and (3) will fail.
-		*/
 
         try {
             c = (ChordNode) Naming.lookup("rmi://" + this.get_successor().ipaddress + "/ChordNode_" + this.get_successor().port);
@@ -1111,7 +885,6 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
             log.info("Key migration on leaving done");
             data.clear();
             log.debug("Data cleared before leaving");
-
         } catch (Exception e) {
             log.error(e);
             return false;
@@ -1121,34 +894,28 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
         try {
             //Set successor's predecessor to my predecessor
-            if (this.node.nodeID != this.get_successor().nodeID)
+            if (this.node.nodeID != this.get_successor().nodeID) {
                 result.hopCount++;
+            }
             c.set_predecessor(this.get_predecessor());
 
             //Set predecessor's successor to my successor
-            c = (ChordNode) Naming.lookup("rmi://" + this.predcessor.ipaddress + "/ChordNode_" + this.predcessor.port);
-            if (this.node.nodeID != this.get_successor().nodeID)
+            c = (ChordNode) Naming.lookup("rmi://" + this.predecessor.ipaddress + "/ChordNode_" + this.predecessor.port);
+            if (this.node.nodeID != this.get_successor().nodeID) {
                 result.hopCount++;
+            }
             c.set_successor(this.get_successor());
 
             //Inform bootstrap and other chord nodes of departure
             bootstrap.removeNodeFromRing(this.node);
             update_others_before_leave(result);
-
         } catch (Exception e) {
             log.error(e);
         }
-
         return true;
     }
 
     @Override
-    /**
-     * This function is used to generate a unique identifier for a key using SHA-1 algorithm
-     * @param key Key for which identifier is to be generated
-     * @param maxNodes Maximum no of nodes in the Chord ring
-     * @return int unique identifier for the key
-     */
     public int generate_ID(String key, int maxNodes) throws RemoteException, NoSuchAlgorithmException {
         MessageDigest md = MessageDigest.getInstance("SHA-1");
         md.reset();
@@ -1158,16 +925,9 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
         return Math.abs(hashValue.intValue()) % maxNodes;
     }
 
-    /**
-     * This function is used to move keys in range (predecessor, n) to successor node
-     *
-     * @param pred    Predecessor nodeinfo object
-     * @param newNode The current instances nodeinfo object
-     * @param result  Result object to assist in metrics collection
-     * @return null
-     */
+    @Override
     public void migrate_keys(NodeInfo pred, NodeInfo newNode, Result result) throws RemoteException {
-        ArrayList<Integer> removelist = new ArrayList<Integer>();
+        ArrayList<Integer> removelist = new ArrayList<>();
 
         data_rwlock.writeLock().lock();
 
@@ -1175,9 +935,6 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
             int key = hashkeys.getKey();
             if (this.inCircularIntervalEndInclude(key, pred.nodeID, newNode.nodeID)) {
                 for (Map.Entry<String, String> e : hashkeys.getValue().entrySet()) {
-                    //System.out.println("HashKey: " + key);
-                    //System.out.print("\tKey: " + e.getKey());
-                    //System.out.print("\tValue: " + e.getValue());
                     try {
                         ChordNode c = (ChordNode) Naming.lookup("rmi://" + newNode.ipaddress + "/ChordNode_" + newNode.port);
                         c.insert_key_local(key, e.getKey(), e.getValue(), result);
@@ -1185,7 +942,6 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                         e1.printStackTrace();
                     }
                 }
-                //Remove the key from the current node
                 removelist.add(key);
             }
         }
@@ -1195,11 +951,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
         data_rwlock.writeLock().unlock();
     }
 
-    /**
-     * Function to display the data stored in the current Chord Node instance
-     *
-     * @return null
-     */
+    @Override
     public void display_data_stored() throws RemoteException {
         for (Map.Entry<Integer, HashMap<String, String>> hashkeys : data.entrySet()) {
             int key = hashkeys.getKey();
@@ -1211,15 +963,10 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
         }
     }
 
-    /**
-     * Dummy function to assist in latency calculation during node joins
-     *
-     * @param n Nodeinfo object of node which is to be called
-     * @return null
-     */
+    @Override
     public void makeCall(NodeInfo n) throws RemoteException {
         if (n != null) {
-            ChordNode c = null;
+            ChordNode c;
             try {
                 c = (ChordNode) Naming.lookup("rmi://" + n.ipaddress + "/ChordNode_" + n.port);
                 c.send_beat();
@@ -1228,29 +975,5 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                 e.printStackTrace();
             }
         }
-    }
-
-    public long get_insert_latency() throws RemoteException {
-        return totalLatency_insert;
-    }
-
-    public long get_query_latency() throws RemoteException {
-        return totalLatency_query;
-    }
-
-    public long get_join_time() throws RemoteException {
-        return totalLatency_join;
-    }
-
-    public int get_insert_hopcount() throws RemoteException {
-        return totalHopCount_insert;
-    }
-
-    public int get_query_hopcount() throws RemoteException {
-        return totalHopCount_query;
-    }
-
-    public int get_join_hopcount() throws RemoteException {
-        return totalHopCount_join;
     }
 }
