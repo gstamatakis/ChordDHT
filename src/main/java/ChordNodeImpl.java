@@ -26,7 +26,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
     private static final int FixFingerPeriod = 5000; // 5 seconds
     private static final long serialVersionUID = 1L;
     public static int m = 5;
-    public static int maxNodes = 32; // maxNodes = 2^m
+    private static int maxNodes = 32; // maxNodes = 2^m
     public static BootStrapNode bootstrap;
     private static int num = 0;  // used during rmi registry binding
     private static int fingerTableSize = 2 * m - 1; // finger table size
@@ -36,9 +36,9 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
     private static Logger log = null;
     public HashMap<Integer, HashMap<String, String>> data = new HashMap<Integer, HashMap<String, String>>();//Data store for each Chord Node instance
     public NodeInfo node;
-    private FingerTableEntry[] fingertable = null; //Data Structure to store the finger table for the Chord Node
+    public FingerTableEntry[] fingertable = null; //Data Structure to store the finger table for the Chord Node
     private ReentrantReadWriteLock data_rwlock = new ReentrantReadWriteLock();
-    private NodeInfo predecessor;
+    public NodeInfo predecessor;
     private ArrayList<HashMap<String, Result>> metrics;
 
     protected ChordNodeImpl(NodeInfo node) throws RemoteException {
@@ -583,7 +583,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
      * @param result Result object to assist in metrics collection
      * @return null
      */
-    private void run(final Result result) {
+    public void run(final Result result) {
         ChordNode c;
         NodeInfo suc = fingertable[0].successor;
 

@@ -24,11 +24,11 @@ network that handles the initial join of ever other node.
         
         java -jar target/ChordDHT-1.0-SNAPSHOT-jar-with-dependencies.jar
         
-3b. To setup the Client Node simply run:
+3b. To setup the Client Node simply run (followed by example):
         
         java -jar target/ChordDHT-1.0-SNAPSHOT-jar-with-dependencies.jar [local IP] [BootStrap Node IP] [Network length (2^m)]
         
-        eg. java -jar target/ChordDHT-1.0-SNAPSHOT-jar-with-dependencies.jar localhost 147.27.70.106 5        
+        java -jar target/ChordDHT-1.0-SNAPSHOT-jar-with-dependencies.jar localhost 147.27.70.106 5        
 
 4 . If done correctly a log would have spawned in the logs directory with additional info.
 
