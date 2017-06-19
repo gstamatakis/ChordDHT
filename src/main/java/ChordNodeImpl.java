@@ -544,7 +544,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
     }
 
-    public boolean inCircularInterval(int x, int a, int b) {
+    private boolean inCircularInterval(int x, int a, int b) {
         boolean val = false;
         if (a == b)
             val = true;
@@ -561,7 +561,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
         return val;
     }
 
-    public boolean inCircularIntervalEndInclude(int x, int a, int b) {
+    private boolean inCircularIntervalEndInclude(int x, int a, int b) {
         return (x == b) || inCircularInterval(x, a, b);
     }
 

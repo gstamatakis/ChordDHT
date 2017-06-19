@@ -1,54 +1,46 @@
-# CHORDX
-Chord is a protocol and algorithm used in distributed and peer to peer environment to locate node with m-bit identifier. Chord does not require any centralized server to locate node containing the resources. Nodes are arranged in a ring type order using consistent hashing and nodes can join and depart anytime.
+###Author 
+Giorgos Stamatakis
 
-ChordX is an improved version of chord which aims at improving handling certain drawbacks of the original chord implementation and provide reduced latency and number of messages exchanges between nodes.
+##Summary
+This is a distributed dictionary that can save Key-Value pairs in a network of nodes.
+The network implements a Chord-like logic using java RMI for RPC. Maven is used to build the fat 
+JARs required in order to run the project. The project consists of 2 JARs that need to be built, the 
+BootStrapNode JAR and the ChordNode JAR both of which can be built by changing the MainClass in 
+pom.xml (line 24) to either ChordNodeImpl or BootStrapNodeImpl. At any given time a BootStrap node 
+must be online with a known IP as all the Client nodes (ChordNodes) will need to contact the bootstrap
+node in order to join the network, the bootstrap node servers as a well known point of entry in the
+network that handles the initial join of ever other node.
 
-## Environment Requirements
-The ChordX algorithm is implementation in JAVA language which offer cross platform support. Below is the recommended requirement to run a stable and efficient chordX implementation with 100,000 keys:
-1. 1 x86-64 CPU core
-2. 2 GB RAM 
-3. 1 Mbps network interface
-4. 10 GB Disk space
-5. Operation System : Linux or Windows
-6. JDK and JRE version 8
+## Instructions
+1. Change the pom.xlm MainClass (line 24) as mentioned in the summary.
+2. Build the maven project by running:
 
-## Version
-The original private git repo contains 2 version for chord implementation:
-1. Original Chord Implementation : Branch `master`
-2. Improved ChordX Implementation : Branch `improvements`
 
-Original private repo link - https://github.ncsu.edu/jjawaha/chordX
+        mvn clean compile assembly:single
 
-Note: This git repo has only the improvements
+3a. To setup the BootStrap Node run:
 
-## Setup
-ChordX can be run in 2 ways, Manually and Automated. 
+        rmiregistry &
+        
+        java -jar target/ChordDHT-1.0-SNAPSHOT-jar-with-dependencies.jar
+        
+3b. To setup the Client Node simply run:
+        
+        java -jar target/ChordDHT-1.0-SNAPSHOT-jar-with-dependencies.jar [local IP] [BootStrap Node IP] [Network length (2^m)]
+        
+        eg. java -jar target/ChordDHT-1.0-SNAPSHOT-jar-with-dependencies.jar localhost 147.27.70.106 5        
 
-### To run manually, follow the below steps:
-1. Clone the project on local machine by running `git clone https://github.com/jerisalan/chordX.git`
-2. Compile all the java files using `javac -cp .:log4j-1.2.17.jar *.java`
-3. Run the RMI Registry to enable remote procedure calls by using the command 
-* Linux : `rmiregistry &`
-* Windows : `start rmiregistry`
-4. Run the Bootstrap Node by running 
-* Linux : `java -cp .:log4j-1.2.17.jar BootStrapNodeImpl`
-* Windows : `java -cp .;log4j-1.2.17.jar BootStrapNodeImpl`
-5. If running the ChordX instance on machine, run the step 2 and 3 again
-6. Run the original ChordX instance by running
-* Linux : `java -cp .:log4j-1.2.17.jar ChordNodeImpl <IP ADDRESS OF CURRENT NODE> <IP ADDRESS OF BOOTSTRAP NODE>`
-* Windows : `java -cp .;log4j-1.2.17.jar ChordNodeImpl <IP ADDRESS OF CURRENT NODE> <IP ADDRESS OF BOOTSTRAP NODE>`
+4 . If done correctly a log would have spawned in the logs directory with additional info.
 
-**Note:** To run improved chordX node instances, switch to improvements branch and follow same steps till 5 and run the below commands to start chordX instances where additional Zone ID parameter is specified to allow node join a paticular zone. Zone ID can range from 0 to m-1 values for m-bit identifier of Chord ring [default value of m is 5, but can be configure by modifying variable "m" and "maxNodes" in  "src/BootStrapNodeImpl.java" & variable "ftsize" and "maxNodes" in "src/ChordNodeImpl.java"]. If Zone ID is not known, provide -1 as the value.
-* Linux : `java -cp .:log4j-1.2.17.jar ChordNodeImpl <IP ADDRESS OF CURRENT NODE> <IP ADDRESS OF BOOTSTRAP NODE> <ZONE ID>`
-* Windows : `java -cp .;log4j-1.2.17.jar ChordNodeImpl <IP ADDRESS OF CURRENT NODE> <IP ADDRESS OF BOOTSTRAP NODE> <ZONE ID>`
+5 . Use the CLI for more options.
 
-### To run automatically on Linux, follow the below steps:
-1. Clone the project on local machine by running `git clone https://github.com/jerisalan/chordX.git`
-2. Configure the key based authentication on each node where chordX instance will be running and store the private key on a single node called Deployer. Deployer should also run the Bootstrap server
-3. Configure the firewall on each node to allow machines to communicate on port 1099
-4. In the deployer `deployer.sh` , configure the IP Address of bootstrap Node (i.e. current node) and all the machines where chordX will be running. Further, to automate the testing process, enter the keys to insert and query in variables "testkeystoinsert" and "testkeystoquery" inside the deployer.sh
-5. Modify the permission of `deployer.sh` to run as executable and run the command './deploer.sh'
-6. All the testing will be performed automatically and performance metrics will be displayed on screen.
+##TIPS
+1. Run rmiregistry & in the classes folder.
 
-### TIPS
-1.Run rmiregistry & in the classes folder.
+##Links
+1. Chord Paper: http://cs.brown.edu/courses/csci2950-g/papers/chord.pdf
+2. Open Chord site: http://open-chord.sourceforge.net/
+3. Java RMI documentation: http://docs.oracle.com/javase/7/docs/technotes/guides/rmi/
+4. Docker documentation: https://docs.docker.com/engine/installation/linux/ubuntu/#install-docker
+5. Maven documentation: http://maven.apache.org/guides/
+6. IntelliJ IDEA Website: https://www.jetbrains.com/idea/specials/idea/idea.html
