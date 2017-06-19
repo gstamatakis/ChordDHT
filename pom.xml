@@ -23,7 +23,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>BootStrapNodeImpl</mainClass>
+                            <mainClass>ChordNodeImpl</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
