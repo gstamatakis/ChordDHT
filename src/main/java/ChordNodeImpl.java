@@ -143,7 +143,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
         log.info("Chord node instance created with rmi name [ChordNode_" + num + "]");
 
-        ArrayList<NodeInfo> nodes = bootstrap.addNodeToRing(nodeIPAddress, num + "", zoneID);
+        ArrayList<NodeInfo> nodes = bootstrap.addNodeToRing(nodeIPAddress, num + "");
         if (nodes != null) {
             cni.node = nodes.get(0);
             FingerTableEntry fte = new FingerTableEntry((cni.node.nodeID + 1) % maxNodes, nodes.get(1));

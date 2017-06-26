@@ -13,12 +13,10 @@ public interface BootStrapNode extends Remote {
      * @param ipaddress The IP Address of the Chord Node joining the ring
      * @param port      The port/identifier of Chord Node instance joining the ring. This differentiates multiple
      *                  instance running on same system
-     * @param zoneID    The identifier for the zone. Accepted values are from -1 to m. Specifying -1 will make the
-     *                  BootStrap assign identifier based on proximity to its probable successors and predecessors.
      * @return ArrayList The list with metrics used to test the protocol.
      * @throws RemoteException Due to RMI.
      */
-    ArrayList<NodeInfo> addNodeToRing(String ipaddress, String port, int zoneID) throws RemoteException;
+    ArrayList<NodeInfo> addNodeToRing(String ipaddress, String port) throws RemoteException;
 
     /**
      * This function is called when a Chord Node leaves the ring or is found to be dead.
