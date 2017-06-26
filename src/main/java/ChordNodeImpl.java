@@ -358,32 +358,38 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                 case 8:
                     System.out.println("Number of keys (power of 2): ");
                     int numOfKeys = Integer.parseInt(sc.nextLine());
-                    for (int cnt = 1; cnt <= numOfKeys; cnt *= 2) {
+                    try (BufferedWriter bw = new BufferedWriter(new FileWriter("benchmark.txt", true))) {
+                        bw.write("\nCount\t\tPut(ms)\t\tGet(ms)");
+                        bw.newLine();
+                        for (int cnt = 1; cnt <= numOfKeys; cnt *= 2) {
+                            bw.write(cnt + "\t\t");
+                            System.out.println("Count: " + cnt);
+                            startTime = System.currentTimeMillis();
+                            for (int i = 1; i <= cnt; i++) {
+                                key = String.valueOf(cnt * i);
+                                value = String.valueOf("value" + i);
+                                Result result1 = new Result();
+                                cni.insert_key(key, value, result1);
+                            }
+                            endTime = System.currentTimeMillis();
+                            timetaken = endTime - startTime;
+                            bw.write(timetaken + "\t\t");
 
-                        System.out.println("Count: " + cnt);
-                        startTime = System.currentTimeMillis();
-                        for (int i = 1; i <= cnt; i++) {
-                            key = String.valueOf(cnt * i);
-                            value = String.valueOf("value" + i);
-                            Result result1 = new Result();
-                            cni.insert_key(key, value, result1);
+                            startTime = System.currentTimeMillis();
+                            for (int i = 1; i <= cnt; i++) {
+                                key = String.valueOf(cnt * i);
+                                Result result1 = new Result();
+                                cni.get_value(key, result1);
+                            }
+                            endTime = System.currentTimeMillis();
+                            timetaken = endTime - startTime;
+                            bw.write(timetaken + "\n");
                         }
-                        endTime = System.currentTimeMillis();
-                        timetaken = endTime - startTime;
-                        log.info("Time taken for PUT operation " + cnt + " : " + timetaken + "ms");
-
-                        startTime = System.currentTimeMillis();
-                        for (int i = 1; i <= cnt; i++) {
-                            key = String.valueOf(cnt * i);
-                            Result result1 = new Result();
-                            cni.get_value(key, result1);
-                        }
-                        endTime = System.currentTimeMillis();
-                        timetaken = endTime - startTime;
-                        log.info("Time taken for GET operation " + cnt + " : " + timetaken + "ms");
-
-
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        return;
                     }
+
                     break;
                 case 9:
                     Result lhops = new Result();
