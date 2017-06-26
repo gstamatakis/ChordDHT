@@ -359,28 +359,30 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                     System.out.println("Number of keys (power of 2): ");
                     int numOfKeys = Integer.parseInt(sc.nextLine());
                     for (int cnt = 1; cnt <= numOfKeys; cnt *= 2) {
+
                         System.out.println("Count: " + cnt);
+                        startTime = System.currentTimeMillis();
                         for (int i = 1; i <= cnt; i++) {
                             key = String.valueOf(cnt * i);
                             value = String.valueOf("value" + i);
                             Result result1 = new Result();
-
-                            //PUT
-                            startTime = System.currentTimeMillis();
-                            if (!cni.insert_key(key, value, result1)) {
-                                System.out.println("PUT failed..\n Abort..");
-                            }
-                            endTime = System.currentTimeMillis();
-                            timetaken = endTime - startTime;
-                            log.info("Time taken for PUT operation " + i + " : " + timetaken + "ms");
-
-                            //GET
-                            startTime = System.currentTimeMillis();
-                            cni.get_value(key, result1);
-                            endTime = System.currentTimeMillis();
-                            timetaken = endTime - startTime;
-                            log.info("Time taken for GET operation " + i + " : " + timetaken + "ms");
+                            cni.insert_key(key, value, result1);
                         }
+                        endTime = System.currentTimeMillis();
+                        timetaken = endTime - startTime;
+                        log.info("Time taken for PUT operation " + cnt + " : " + timetaken + "ms");
+
+                        startTime = System.currentTimeMillis();
+                        for (int i = 1; i <= cnt; i++) {
+                            key = String.valueOf(cnt * i);
+                            Result result1 = new Result();
+                            cni.get_value(key, result1);
+                        }
+                        endTime = System.currentTimeMillis();
+                        timetaken = endTime - startTime;
+                        log.info("Time taken for GET operation " + cnt + " : " + timetaken + "ms");
+
+
                     }
                     break;
                 case 9:
