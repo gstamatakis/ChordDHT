@@ -125,7 +125,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                 log.trace("Checking for existing chord node instances [ChordNode_" + num + "] running on localhost");
                 try {
                     c = (ChordNode) Naming.lookup("rmi://localhost/ChordNode_" + num);
-                } catch (NotBoundException e) {
+                } catch (Exception e) {
                     c = null;
                 }
                 if (c == null) {

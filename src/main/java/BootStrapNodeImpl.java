@@ -43,10 +43,11 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
     public static void main(String[] args) throws Exception {
         try {
             BootStrapNodeImpl bnode = new BootStrapNodeImpl();
+            System.setProperty("java.rmi.server.hostname","127.0.0.1");
             Naming.rebind("ChordRing", bnode);
             noOfNodes = 0;
             System.out.println("Waiting for nodes to join or leave the Chord Ring");
-            System.out.println("Number of nodes in Chord Ring: " + noOfNodes + "\n");
+            System.out.println("Number of nodes in Chord Ring: "  + noOfNodes + "\n");
         } catch (Exception e) {
             e.printStackTrace();
         }
