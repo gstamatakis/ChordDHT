@@ -401,7 +401,6 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                             } catch (InterruptedException ignored) {
 
                             }
-                            bw.flush();
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -442,7 +441,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                     break;
             }
         }
-        System.exit(0);
+
     }
 
     @Override
