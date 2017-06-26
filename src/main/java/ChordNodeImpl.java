@@ -24,13 +24,15 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import static java.lang.Thread.sleep;
+
 
 public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
-    private static final int StabilizePeriod = 10000; // 10 sec
-    private static final int FixFingerPeriod = 10000; // 10 sec
+    private static final int StabilizePeriod = 2000; // 2 sec
+    private static final int FixFingerPeriod = 2000; // 2 sec
     private static final long serialVersionUID = 1L;
-    public static int m = 8;
+    public static int m = 16;
     public static int maxNodes = (int) Math.pow(2.0, (long) m);         // Maximum number of permitted nodes in the Chord Ring
     public static BootStrapNode bootstrap;
     private static int num = 0;  // used during rmi registry binding
@@ -364,6 +366,8 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                         for (int cnt = 1; cnt <= numOfKeys; cnt *= 2) {
                             bw.write(cnt + "\t");
                             System.out.println("Count: " + cnt);
+
+                            //Put
                             startTime = System.currentTimeMillis();
                             for (int i = 1; i <= cnt; i++) {
                                 key = String.valueOf(cnt * i);
@@ -375,6 +379,13 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                             timetaken = endTime - startTime;
                             bw.write(timetaken + "\t");
 
+                            try {
+                                sleep(10 * StabilizePeriod); //Wait for 10 stabilizations.
+                            } catch (InterruptedException ignored) {
+
+                            }
+
+                            //Get
                             startTime = System.currentTimeMillis();
                             for (int i = 1; i <= cnt; i++) {
                                 key = String.valueOf(cnt * i);
@@ -384,6 +395,12 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                             endTime = System.currentTimeMillis();
                             timetaken = endTime - startTime;
                             bw.write(timetaken + "\n");
+
+                            try {
+                                sleep(2 * StabilizePeriod); //Wait for 2 stabilizations.
+                            } catch (InterruptedException ignored) {
+
+                            }
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
