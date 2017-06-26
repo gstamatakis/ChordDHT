@@ -39,7 +39,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
     private static Timer timerStabilize = new Timer();
     private static Timer timerFixFinger = new Timer();
     private static Logger log = null;
-    public HashMap<Integer, HashMap<String, String>> data = new HashMap<Integer, HashMap<String, String>>();//Data store for each Chord Node instance
+    public HashMap<Integer, HashMap<String, String>> data = new HashMap<>();//Data store for each Chord Node instance
     public NodeInfo node;
     public FingerTableEntry[] fingertable = null; //Data Structure to store the finger table for the Chord Node
     private ReentrantReadWriteLock data_rwlock = new ReentrantReadWriteLock();
@@ -173,7 +173,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
         while (running) {
             System.out.println("\nMenu: \n1. Print Finger Table"
-                    + "\n2. Get Key \n3. Put Key \n4. Delete Key \n5. Display data stored \n6. Insert file \n7. Retrieve file\n9. Leave Chord Ring");
+                    + "\n2. Get Key \n3. Put Key \n4. Delete Key \n5. Display data stored \n6. Insert file \n7. Retrieve file\n8. Experiments \n9. Leave Chord Ring");
             System.out.println("Enter your choice: ");
             try {
                 choice = sc.nextInt();
@@ -355,6 +355,33 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                     }
                     break;
 
+                case 8:
+                    System.out.println("Number of keys (power of 2): ");
+                    int numOfKeys = Integer.parseInt(sc.nextLine());
+
+
+                    for (int i = 1; i < numOfKeys; i *= 2) {
+                        key = String.valueOf(i);
+                        value = String.valueOf("value" + i);
+                        Result result1 = new Result();
+
+                        //PUT
+                        startTime = System.currentTimeMillis();
+                        if (!cni.insert_key(key, value, result1)) {
+                            System.out.println("PUT failed..\n Abort..");
+                        }
+                        endTime = System.currentTimeMillis();
+                        timetaken = endTime - startTime;
+                        log.info("Time taken for PUT operation " + i + " : " + timetaken + "ms");
+
+                        //GET
+                        startTime = System.currentTimeMillis();
+                        cni.get_value(key, result1);
+                        endTime = System.currentTimeMillis();
+                        timetaken = endTime - startTime;
+                        log.info("Time taken for GET operation " + i + " : " + timetaken + "ms");
+                    }
+                    break;
                 case 9:
                     Result lhops = new Result();
                     startTime = System.currentTimeMillis();
