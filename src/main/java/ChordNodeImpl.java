@@ -441,7 +441,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                     break;
             }
         }
-
+        System.exit(0);
     }
 
     @Override
