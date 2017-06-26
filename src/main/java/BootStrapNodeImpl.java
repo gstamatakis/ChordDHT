@@ -15,6 +15,8 @@ import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+import static sun.management.jmxremote.ConnectorBootstrap.PropertyNames.RMI_PORT;
+
 public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapNode {
     private static final long serialVersionUID = 1L;
 
@@ -113,7 +115,7 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
                         long startTime = System.currentTimeMillis();
                         ChordNode c = null;
                         try {
-                            c = (ChordNode) Naming.lookup("rmi://" + ipaddress + "/ChordNode_" + port);
+                            c = (ChordNode) Naming.lookup("rmi://" + ipaddress + ":" + RMI_PORT + "/ChordNode_" + port);
                         } catch (MalformedURLException | NotBoundException e) {
                             e.printStackTrace();
                         }
