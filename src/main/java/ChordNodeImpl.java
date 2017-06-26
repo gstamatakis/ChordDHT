@@ -359,10 +359,10 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                     System.out.println("Number of keys (power of 2): ");
                     int numOfKeys = Integer.parseInt(sc.nextLine());
                     try (BufferedWriter bw = new BufferedWriter(new FileWriter("benchmark.txt", true))) {
-                        bw.write("\nCount\t\tPut(ms)\t\tGet(ms)");
+                        bw.write("\nCount\tPut(ms)\tGet(ms)");
                         bw.newLine();
                         for (int cnt = 1; cnt <= numOfKeys; cnt *= 2) {
-                            bw.write(cnt + "\t\t");
+                            bw.write(cnt + "\t");
                             System.out.println("Count: " + cnt);
                             startTime = System.currentTimeMillis();
                             for (int i = 1; i <= cnt; i++) {
@@ -373,7 +373,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                             }
                             endTime = System.currentTimeMillis();
                             timetaken = endTime - startTime;
-                            bw.write(timetaken + "\t\t");
+                            bw.write(timetaken + "\t");
 
                             startTime = System.currentTimeMillis();
                             for (int i = 1; i <= cnt; i++) {
