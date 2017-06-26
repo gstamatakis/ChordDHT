@@ -115,7 +115,7 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
                         long startTime = System.currentTimeMillis();
                         ChordNode c = null;
                         try {
-                            c = (ChordNode) Naming.lookup("rmi://" + ipaddress + ":" + RMI_PORT + "/ChordNode_" + port);
+                            c = (ChordNode) Naming.lookup("rmi://" + ipaddress + "/ChordNode_" + port);
                         } catch (MalformedURLException | NotBoundException e) {
                             e.printStackTrace();
                         }

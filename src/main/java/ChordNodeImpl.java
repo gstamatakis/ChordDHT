@@ -29,7 +29,6 @@ import static java.lang.Thread.sleep;
 
 public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
-    public static final int RMI_PORT = 1099;
     /**
      * The number of pixels (vertically) of each image chunk
      */
@@ -112,7 +111,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
         try {
             startTime = System.currentTimeMillis();
             result.latency = startTime;
-            String rmiUrl = "rmi://" + args[1] + ":" + RMI_PORT + "/ChordRing";
+            String rmiUrl = "rmi://" + args[1] + "/ChordRing";
             log.debug("Contacting Bootstrap Server " + rmiUrl);
             bootstrap = (BootStrapNode) Naming.lookup(rmiUrl);
         } catch (MalformedURLException | RemoteException | NotBoundException e) {
