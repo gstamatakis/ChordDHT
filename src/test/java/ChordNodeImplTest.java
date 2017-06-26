@@ -1,4 +1,6 @@
 import org.apache.log4j.FileAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.junit.Assert;
 import org.junit.jupiter.api.Test;
@@ -8,6 +10,9 @@ import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Scanner;
 
 /**
  * Created  by gstamatakis on 26-Jun-17.
@@ -78,7 +83,7 @@ public class ChordNodeImplTest {
             return;
         }
 
-        ArrayList<NodeInfo> nodes = bootstrap.addNodeToRing(nodeIPAddress, num + "",5);
+        ArrayList<NodeInfo> nodes = bootstrap.addNodeToRing(nodeIPAddress, num + "", zoneID);
         if (nodes != null) {
             cni.node = nodes.get(0);
             FingerTableEntry fte = new FingerTableEntry((cni.node.nodeID + 1) % maxNodes, nodes.get(1));
