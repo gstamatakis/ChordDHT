@@ -33,7 +33,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>BootStraprNodeImpl</mainClass>
+                            <mainClass>ChordNodeImpl</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
