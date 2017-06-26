@@ -27,8 +27,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
-    private static final int StabilizePeriod = 5000; // 5 seconds
-    private static final int FixFingerPeriod = 5000; // 5 seconds
+    private static final int StabilizePeriod = 10000; // 10 sec
+    private static final int FixFingerPeriod = 10000; // 10 sec
     private static final long serialVersionUID = 1L;
     public static int m = 32;
     private static int maxNodes = 2 ^ 32; // maxNodes = 2^m
@@ -173,7 +173,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
         while (running) {
             System.out.println("\nMenu: \n1. Print Finger Table"
-                    + "\n2. Get Key \n3. Put Key \n4. Delete Key \n5. Display data stored \n6. Insert file \n7.Retrieve file\n9. Leave Chord Ring");
+                    + "\n2. Get Key \n3. Put Key \n4. Delete Key \n5. Display data stored \n6. Insert file \n7. Retrieve file\n9. Leave Chord Ring");
             System.out.println("Enter your choice: ");
             try {
                 choice = sc.nextInt();
