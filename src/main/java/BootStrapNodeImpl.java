@@ -5,10 +5,9 @@
  */
 
 import java.math.BigInteger;
-import java.net.MalformedURLException;
-import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -24,6 +23,7 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
     private static int noOfNodes = 0;
     private static ArrayList<NodeInfo> nodeList = new ArrayList<>();
     private static ArrayList<Integer> nodeIds = new ArrayList<>();
+    private static Registry registry;
 
     /**
      * Dummy constructor
@@ -44,7 +44,8 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
         try {
             BootStrapNodeImpl bnode = new BootStrapNodeImpl();
             System.setProperty("java.rmi.server.hostname","localhost");
-            Naming.rebind("ChordRing", bnode);
+            registry = java.rmi.registry.LocateRegistry.createRegistry(1099);
+            registry.rebind("ChordRing", bnode);
             noOfNodes = 0;
             System.out.println("Waiting for nodes to join or leave the Chord Ring");
             System.out.println("Number of nodes in Chord Ring: "  + noOfNodes + "\n");
@@ -115,8 +116,8 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
                             long startTime = System.currentTimeMillis();
                             ChordNode c = null;
                             try {
-                                c = (ChordNode) Naming.lookup("rmi://" + ipaddress + "/ChordNode_" + port);
-                            } catch (MalformedURLException | NotBoundException e) {
+                                c = (ChordNode) registry.lookup("rmi://" + ipaddress + "/ChordNode_" + port);
+                            } catch (NotBoundException e) {
                                 e.printStackTrace();
                             }
                             assert c != null;
