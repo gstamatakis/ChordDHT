@@ -14,10 +14,10 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.math.BigInteger;
+import java.net.MalformedURLException;
+import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -29,6 +29,10 @@ import static java.lang.Thread.sleep;
 
 public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
+    /**
+     * The number of pixels (vertically) of each image chunk
+     */
+    public static final int IMAGE_STEP = 4;
     private static final int StabilizePeriod = 4000; // 4 sec
     private static final int FixFingerPeriod = 4000; // 4 sec
     private static final long serialVersionUID = 1L;
@@ -44,15 +48,9 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
     public HashMap<Integer, HashMap<String, String>> data = new HashMap<>();//Data store for each Chord Node instance
     public NodeInfo node;
     public FingerTableEntry[] fingertable = null; //Data Structure to store the finger table for the Chord Node
-    private ReentrantReadWriteLock data_rwlock = new ReentrantReadWriteLock();
     public NodeInfo predecessor;
+    private ReentrantReadWriteLock data_rwlock = new ReentrantReadWriteLock();
     private ArrayList<HashMap<String, Result>> metrics;
-    private static Registry registry;
-
-    /**
-     * The number of pixels (vertically) of each image chunk
-     */
-    public static final int IMAGE_STEP = 4;
 
     protected ChordNodeImpl(NodeInfo node) throws RemoteException {
         super();
@@ -110,15 +108,14 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
         String nodeIPAddress = args[0];
         int zoneID = Integer.parseInt(args[2]);
-        registry = LocateRegistry.getRegistry();
 
         try {
             startTime = System.currentTimeMillis();
             result.latency = startTime;
             String rmiUrl = "rmi://" + args[1] + "/ChordRing";
             log.debug("Contacting Bootstrap Server " + rmiUrl);
-            bootstrap = (BootStrapNode) registry.lookup(rmiUrl);
-        } catch ( RemoteException | NotBoundException e) {
+            bootstrap = (BootStrapNode) Naming.lookup(rmiUrl);
+        } catch (MalformedURLException | RemoteException | NotBoundException e) {
             log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
         }
 
@@ -126,13 +123,13 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
             while (true) {
                 log.trace("Checking for existing chord node instances [ChordNode_" + num + "] running on localhost");
                 try {
-                    c = (ChordNode) registry.lookup("rmi://localhost/ChordNode_" + num);
+                    c = (ChordNode) Naming.lookup("rmi://localhost/ChordNode_" + num);
                 } catch (Exception e) {
                     c = null;
                 }
                 if (c == null) {
                     cni = new ChordNodeImpl();
-                    registry.rebind("ChordNode_" + num, cni);
+                    Naming.rebind("ChordNode_" + num, cni);
                     break;
                 } else {
                     num++;
@@ -422,7 +419,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
                         try {
                             log.info("Removing the node from ring [ChordNode_" + cni.node.port + "]");
-                            registry.unbind("rmi://localhost/ChordNode_" + cni.node.port);
+                            Naming.unbind("rmi://localhost/ChordNode_" + cni.node.port);
                             log.debug("ChordNode RMI object unbinded");
                         } catch (Exception e) {
                             log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
@@ -446,12 +443,62 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
     }
 
+    /**
+     * Read the object from Base64 string.
+     *
+     * @param s The serialized object.
+     * @return The deserialized object.
+     * @throws IOException            when decoding fails.
+     * @throws ClassNotFoundException when readObj fails.
+     */
+    private static Object fromString(String s) throws IOException, ClassNotFoundException {
+        byte[] data = Base64.getDecoder().decode(s);
+        ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(data));
+        Object o = ois.readObject();
+        ois.close();
+        return o;
+    }
+
+    /**
+     * Write the object to a Base64 string.
+     *
+     * @param o The object to be serialized.
+     * @return The string of the serialized object.
+     * @throws IOException when encoding fails.
+     */
+    private static String makeString(Serializable o) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(o);
+        oos.close();
+        return Base64.getEncoder().encodeToString(baos.toByteArray());
+    }
+
+    /**
+     * Right way to delete a non empty directory in Java
+     *
+     * @param dir The directory to be deleted (empty or not).
+     * @return A boolean value indicating the success or failure of the task.
+     */
+    private static boolean deleteDirectory(File dir) {
+        if (dir.isDirectory()) {
+            File[] children = dir.listFiles();
+            for (int i = 0; i < (children != null ? children.length : 0); i++) {
+                boolean success = deleteDirectory(children[i]);
+                if (!success) {
+                    return false;
+                }
+            }
+        }
+        return dir.delete();
+    }
+
     @Override
     public NodeInfo find_successor(int id, Result result) throws RemoteException {
         log.debug("Searching for the successor of id: " + id);
         NodeInfo newNode = find_predecessor(id, result);
         try {
-            ChordNode c = (ChordNode) registry.lookup("rmi://" + newNode.ipaddress + "/ChordNode_" + newNode.port);
+            ChordNode c = (ChordNode) Naming.lookup("rmi://" + newNode.ipaddress + "/ChordNode_" + newNode.port);
             if (newNode.nodeID != this.node.nodeID) {
                 result.hopCount++;
             }
@@ -486,7 +533,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                 }
 
                 myID = nn.nodeID;
-                c = (ChordNode) registry.lookup("rmi://" + nn.ipaddress + "/ChordNode_" + nn.port);
+                c = (ChordNode) Naming.lookup("rmi://" + nn.ipaddress + "/ChordNode_" + nn.port);
                 succID = c.get_successor().nodeID;
                 if (nn.nodeID != this.node.nodeID) {
                     result.hopCount++;
@@ -512,10 +559,20 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
         return this.node;
     }
 
+	/*
+    (1) Check if successor is dead (try pinging/reaching it twice).
+	(2) Find the next finger table entry that does not point either to me or to the dead successor.
+	(3) Once such a finger table entry is found, query that node for its predecessor.
+	(3a) In a loop, follow the predecessor chain till you find the node whose predecessor is our dead successor.
+	(3b) Set my successor as that node and set the predecessor of that node as me.
+	(3c) Inform bootstrap to update its list of active chord nodes.
+	(4) If no such finger table entry is found, contact bootstrap to return a different successor.
+	*/
+
     public void init_finger_table(NodeInfo n, Result result) throws RemoteException {
         ChordNode c;
         try {
-            c = (ChordNode) registry.lookup("rmi://" + n.ipaddress + "/ChordNode_" + n.port);
+            c = (ChordNode) Naming.lookup("rmi://" + n.ipaddress + "/ChordNode_" + n.port);
 
             int myID = this.node.nodeID;
             for (int i = 0; i < fingerTableSize - 1; i++) {
@@ -553,7 +610,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
             }
             c.set_predecessor(this.node);
             log.info("predecessor of node " + n.nodeID + " set as " + this.node.nodeID);
-        } catch (NotBoundException e) {
+        } catch (MalformedURLException | NotBoundException e) {
             log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
         }
     }
@@ -566,7 +623,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
             }
             NodeInfo p = find_predecessor(id, result);
             try {
-                ChordNode c = (ChordNode) registry.lookup("rmi://" + p.ipaddress + "/ChordNode_" + p.port);
+                ChordNode c = (ChordNode) Naming.lookup("rmi://" + p.ipaddress + "/ChordNode_" + p.port);
                 c.update_finger_table_leave(this.node, i - 1, this.get_successor(), result);
                 if (this.node.nodeID != p.nodeID)
                     result.hopCount++;
@@ -582,7 +639,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
             NodeInfo p = predecessor;
 
             try {
-                ChordNode c = (ChordNode) registry.lookup("rmi://" + p.ipaddress + "/ChordNode_" + p.port);
+                ChordNode c = (ChordNode) Naming.lookup("rmi://" + p.ipaddress + "/ChordNode_" + p.port);
                 c.update_finger_table_leave(t, i, s, result);
                 if (this.node.nodeID != p.nodeID)
                     result.hopCount++;
@@ -591,16 +648,6 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
             }
         }
     }
-
-	/*
-    (1) Check if successor is dead (try pinging/reaching it twice).
-	(2) Find the next finger table entry that does not point either to me or to the dead successor.
-	(3) Once such a finger table entry is found, query that node for its predecessor.
-	(3a) In a loop, follow the predecessor chain till you find the node whose predecessor is our dead successor.
-	(3b) Set my successor as that node and set the predecessor of that node as me.
-	(3c) Inform bootstrap to update its list of active chord nodes.
-	(4) If no such finger table entry is found, contact bootstrap to return a different successor.
-	*/
 
     @Override
     public void send_beat() throws RemoteException {
@@ -622,14 +669,14 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                 successor = this;
             } else {
                 log.debug("RMI CALL TO HEART BEAT:" + "rmi://" + successorNodeInfo.ipaddress + "/ChordNode_" + successorNodeInfo.port);
-                successor = (ChordNode) registry.lookup("rmi://" + successorNodeInfo.ipaddress + "/ChordNode_" + successorNodeInfo.port);
+                successor = (ChordNode) Naming.lookup("rmi://" + successorNodeInfo.ipaddress + "/ChordNode_" + successorNodeInfo.port);
                 successor.send_beat();
             }
         } catch (Exception e) {
             log.error("Failed Heart beat message. Error in stabilize: " + e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
             try {
                 assert successorNodeInfo != null;
-                successor = (ChordNode) registry.lookup("rmi://" + successorNodeInfo.ipaddress + "/ChordNode_" + successorNodeInfo.port);
+                successor = (ChordNode) Naming.lookup("rmi://" + successorNodeInfo.ipaddress + "/ChordNode_" + successorNodeInfo.port);
                 successor.send_beat();
             } catch (Exception e1) {
                 successor = null;
@@ -651,7 +698,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                 while (true) {// follow the predecessor chain from tempNodeInfo
                     try {
                         log.debug("Current node in predecessor chain " + tempNodeInfo.nodeID);
-                        temp = (ChordNode) registry.lookup("rmi://" + tempNodeInfo.ipaddress + "/ChordNode_" + tempNodeInfo.port);
+                        temp = (ChordNode) Naming.lookup("rmi://" + tempNodeInfo.ipaddress + "/ChordNode_" + tempNodeInfo.port);
                         if (temp.get_predecessor().nodeID == successorNodeInfo.nodeID) {
                             temp.set_predecessor(this.node);
                             this.set_successor(tempNodeInfo);
@@ -674,7 +721,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                 try {// My finger table does not include a different node. Request from bootstrap for a new successor.
                     NodeInfo new_suc = bootstrap.findNewSuccessor(this.node, successorNodeInfo);
                     this.set_successor(new_suc);
-                    temp = (ChordNode) registry.lookup("rmi://" + new_suc.ipaddress + "/ChordNode_" + new_suc.port);
+                    temp = (ChordNode) Naming.lookup("rmi://" + new_suc.ipaddress + "/ChordNode_" + new_suc.port);
                     temp.set_predecessor(this.node);
                 } catch (Exception e) {
                     log.error("Error in requesting new successor from bootstrap: " + e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
@@ -786,7 +833,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 		P.S. Only after operation (4) is the new node actually connected to the ring.
 		Once predecessor knows about the new node, other nodes in the ring
 		will eventually learn of it through fix fingers.
-		
+
 		Note: Don't change the order.
 		This order ensures that the new node does not receive any key-related requests
 		before it joins the ring.
@@ -807,7 +854,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
             log.info("Starting key migration");
             try {
-                c = (ChordNode) registry.lookup("rmi://" + suc.ipaddress + "/ChordNode_" + suc.port);
+                c = (ChordNode) Naming.lookup("rmi://" + suc.ipaddress + "/ChordNode_" + suc.port);
                 c.migrate_keys(this.predecessor, this.node, result);
                 if (this.node.nodeID != suc.nodeID)
                     result.hopCount++;
@@ -816,7 +863,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
             }
 
             try {// set successor of predecessor as me
-                c = (ChordNode) registry.lookup("rmi://" + predecessor.ipaddress + "/ChordNode_" + predecessor.port);
+                c = (ChordNode) Naming.lookup("rmi://" + predecessor.ipaddress + "/ChordNode_" + predecessor.port);
                 c.set_successor(this.node);
                 log.info("successor of node " + predecessor.nodeID + " set as " + this.node.nodeID);
 
@@ -900,7 +947,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
             log.info("Inserting keyID " + keyID + " for key " + key + " with value " + value);
             NodeInfo n = find_successor(keyID, result);
             if (n != this.node) {
-                ChordNode c = (ChordNode) registry.lookup("rmi://" + n.ipaddress + "/ChordNode_" + n.port);
+                ChordNode c = (ChordNode) Naming.lookup("rmi://" + n.ipaddress + "/ChordNode_" + n.port);
                 result.hopCount++;
                 boolean flag = c.insert_key_local(keyID, key, value, result);
                 endTime = System.currentTimeMillis();
@@ -931,7 +978,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
             log.info("Deleting key :" + key + "with key hash" + keyID);
             NodeInfo n = find_successor(keyID, result);
             if (n != this.node) {
-                ChordNode c = (ChordNode) registry.lookup("rmi://" + n.ipaddress + "/ChordNode_" + n.port);
+                ChordNode c = (ChordNode) Naming.lookup("rmi://" + n.ipaddress + "/ChordNode_" + n.port);
                 result.hopCount++;
                 return c.delete_key_local(keyID, key, result);
             } else {
@@ -951,7 +998,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
             int keyID = generate_ID(key, maxNodes);
             NodeInfo n = find_successor(keyID, result);
             if (n != this.node) {
-                ChordNode c = (ChordNode) registry.lookup("rmi://" + n.ipaddress + "/ChordNode_" + n.port);
+                ChordNode c = (ChordNode) Naming.lookup("rmi://" + n.ipaddress + "/ChordNode_" + n.port);
                 result.hopCount++;
                 String val = c.get_key_local(keyID, key, result);
                 endTime = System.currentTimeMillis();
@@ -1038,7 +1085,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
         data_rwlock.writeLock().lock();
 
         try {
-            c = (ChordNode) registry.lookup("rmi://" + this.get_successor().ipaddress + "/ChordNode_" + this.get_successor().port);
+            c = (ChordNode) Naming.lookup("rmi://" + this.get_successor().ipaddress + "/ChordNode_" + this.get_successor().port);
 
             for (Map.Entry<Integer, HashMap<String, String>> hashkeys : data.entrySet()) {
                 int key = hashkeys.getKey();
@@ -1068,7 +1115,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
             c.set_predecessor(this.get_predecessor());
 
             //Set predecessor's successor to my successor
-            c = (ChordNode) registry.lookup("rmi://" + this.predecessor.ipaddress + "/ChordNode_" + this.predecessor.port);
+            c = (ChordNode) Naming.lookup("rmi://" + this.predecessor.ipaddress + "/ChordNode_" + this.predecessor.port);
             if (this.node.nodeID != this.get_successor().nodeID) {
                 result.hopCount++;
             }
@@ -1104,7 +1151,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
             if (this.inCircularIntervalEndInclude(key, pred.nodeID, newNode.nodeID)) {
                 for (Map.Entry<String, String> e : hashkeys.getValue().entrySet()) {
                     try {
-                        ChordNode c = (ChordNode) registry.lookup("rmi://" + newNode.ipaddress + "/ChordNode_" + newNode.port);
+                        ChordNode c = (ChordNode) Naming.lookup("rmi://" + newNode.ipaddress + "/ChordNode_" + newNode.port);
                         c.insert_key_local(key, e.getKey(), e.getValue(), result);
                     } catch (Exception e1) {
                         e1.printStackTrace();
@@ -1136,62 +1183,12 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
         if (n != null) {
             ChordNode c;
             try {
-                c = (ChordNode) registry.lookup("rmi://" + n.ipaddress + "/ChordNode_" + n.port);
+                c = (ChordNode) Naming.lookup("rmi://" + n.ipaddress + "/ChordNode_" + n.port);
                 c.send_beat();
             } catch (Exception e) {
 
                 e.printStackTrace();
             }
         }
-    }
-
-    /**
-     * Read the object from Base64 string.
-     *
-     * @param s The serialized object.
-     * @return The deserialized object.
-     * @throws IOException            when decoding fails.
-     * @throws ClassNotFoundException when readObj fails.
-     */
-    private static Object fromString(String s) throws IOException, ClassNotFoundException {
-        byte[] data = Base64.getDecoder().decode(s);
-        ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(data));
-        Object o = ois.readObject();
-        ois.close();
-        return o;
-    }
-
-    /**
-     * Write the object to a Base64 string.
-     *
-     * @param o The object to be serialized.
-     * @return The string of the serialized object.
-     * @throws IOException when encoding fails.
-     */
-    private static String makeString(Serializable o) throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = new ObjectOutputStream(baos);
-        oos.writeObject(o);
-        oos.close();
-        return Base64.getEncoder().encodeToString(baos.toByteArray());
-    }
-
-    /**
-     * Right way to delete a non empty directory in Java
-     *
-     * @param dir The directory to be deleted (empty or not).
-     * @return A boolean value indicating the success or failure of the task.
-     */
-    private static boolean deleteDirectory(File dir) {
-        if (dir.isDirectory()) {
-            File[] children = dir.listFiles();
-            for (int i = 0; i < (children != null ? children.length : 0); i++) {
-                boolean success = deleteDirectory(children[i]);
-                if (!success) {
-                    return false;
-                }
-            }
-        }
-        return dir.delete();
     }
 }
