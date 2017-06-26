@@ -4,6 +4,7 @@ MAINTAINER gstamatakis
 
 RUN apk update
 RUN apk add git
+RUN apk add tree
 
 ENV GIT_SSL_NO_VERIFY true
 
@@ -17,4 +18,4 @@ RUN  mvn clean compile assembly:single
 
 EXPOSE 1099 21 22
 
-RUN ls
+RUN tree
