@@ -21,7 +21,6 @@ public class FingerTableEntry {
         this.successor = n;
     }
 
-    //Setters and Getters for the data members
     public int getStart() {
         return start;
     }

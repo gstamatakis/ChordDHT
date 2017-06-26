@@ -73,7 +73,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
         if (args.length < 3) {
             System.out.println("Usage : java ChordNodeImpl <ip address of current node> <ipaddress of bootstrap> <zone-ID(range 0-m)>");
-            return;
+            System.exit(-1);
         }
 
         // Logging Module initialize
@@ -125,7 +125,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                 }
             }
         } catch (Exception e) {
-            log.error("Error in binding ChordNode" + e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
+            log.error("Error in binding ChordNode " + e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
             return;
         }
 

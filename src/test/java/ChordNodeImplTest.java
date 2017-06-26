@@ -51,7 +51,8 @@ class ChordNodeImplTest {
                 }
             }
         } catch (Exception e) {
-            Assert.fail(e.toString());
+            e.printStackTrace();
+            Assert.fail();
             return;
         }
 
@@ -70,12 +71,14 @@ class ChordNodeImplTest {
 
         cni.run(result);
 
-        String key = "42";
-        String value = "The meaning of life.";
-        Result insHops = new Result();
-        boolean res = cni.insert_key(key, value, insHops);
-        if (!res) {
-            Assert.fail("Unsuccessful insertion!");
+        for (int i = 0; i < 1000; i++) {
+            String key = String.valueOf(i);
+            String value = "Value " + i;
+            Result insHops = new Result();
+            boolean res = cni.insert_key(key, value, insHops);
+            if (!res) {
+                Assert.fail("Unsuccessful insertion!");
+            }
         }
     }
 
