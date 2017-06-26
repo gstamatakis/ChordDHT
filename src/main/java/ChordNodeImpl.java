@@ -173,7 +173,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
         while (running) {
             System.out.println("\nMenu: \n1. Print Finger Table"
-                    + "\n2. Get Key \n3. Put Key \n4. Delete Key \n5. Display data stored \n6. Insert file \n9. Leave Chord Ring");
+                    + "\n2. Get Key \n3. Put Key \n4. Delete Key \n5. Display data stored \n6. Insert file \n7.Retrieve file\n9. Leave Chord Ring");
             System.out.println("Enter your choice: ");
             try {
                 choice = sc.nextInt();
@@ -1095,7 +1095,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
      *
      * @param s The serialized object.
      * @return The deserialized object.
-     * @throws IOException when decoding fails.
+     * @throws IOException            when decoding fails.
      * @throws ClassNotFoundException when readObj fails.
      */
     private static Object fromString(String s) throws IOException, ClassNotFoundException {
