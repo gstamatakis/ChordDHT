@@ -29,10 +29,6 @@ import static java.lang.Thread.sleep;
 
 public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
-    /**
-     * The number of pixels (vertically) of each image chunk
-     */
-    public static final int IMAGE_STEP = 4;
     private static final int StabilizePeriod = 2000; // 2 sec
     private static final int FixFingerPeriod = 2000; // 2 sec
     private static final long serialVersionUID = 1L;
@@ -48,9 +44,14 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
     public HashMap<Integer, HashMap<String, String>> data = new HashMap<>();//Data store for each Chord Node instance
     public NodeInfo node;
     public FingerTableEntry[] fingertable = null; //Data Structure to store the finger table for the Chord Node
-    public NodeInfo predecessor;
     private ReentrantReadWriteLock data_rwlock = new ReentrantReadWriteLock();
+    public NodeInfo predecessor;
     private ArrayList<HashMap<String, Result>> metrics;
+
+    /**
+     * The number of pixels (vertically) of each image chunk
+     */
+    public static final int IMAGE_STEP = 4;
 
     protected ChordNodeImpl(NodeInfo node) throws RemoteException {
         super();
@@ -82,8 +83,8 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
         Result result = new Result();
         HashMap<String, Result> met;
 
-        if (args.length < 2) {
-            System.out.println("Usage : java ChordNodeImpl <ip address of current node> <ipaddress of bootstrap>");
+        if (args.length < 3) {
+            System.out.println("Usage : java ChordNodeImpl <ip address of current node> <ipaddress of bootstrap> <zone-ID(range 0-m)>");
             System.exit(-1);
         }
 
@@ -107,6 +108,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
         log.info("\n## Creating chord node instance ##\n");
 
         String nodeIPAddress = args[0];
+        int zoneID = Integer.parseInt(args[2]);
 
         try {
             startTime = System.currentTimeMillis();
@@ -123,7 +125,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                 log.trace("Checking for existing chord node instances [ChordNode_" + num + "] running on localhost");
                 try {
                     c = (ChordNode) Naming.lookup("rmi://localhost/ChordNode_" + num);
-                } catch (Exception e) {
+                } catch (NotBoundException e) {
                     c = null;
                 }
                 if (c == null) {
@@ -141,7 +143,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
         log.info("Chord node instance created with rmi name [ChordNode_" + num + "]");
 
-        ArrayList<NodeInfo> nodes = bootstrap.addNodeToRing(nodeIPAddress, num + "");
+        ArrayList<NodeInfo> nodes = bootstrap.addNodeToRing(nodeIPAddress, num + "", zoneID);
         if (nodes != null) {
             cni.node = nodes.get(0);
             FingerTableEntry fte = new FingerTableEntry((cni.node.nodeID + 1) % maxNodes, nodes.get(1));
@@ -443,56 +445,6 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
         System.exit(0);
     }
 
-    /**
-     * Read the object from Base64 string.
-     *
-     * @param s The serialized object.
-     * @return The deserialized object.
-     * @throws IOException            when decoding fails.
-     * @throws ClassNotFoundException when readObj fails.
-     */
-    private static Object fromString(String s) throws IOException, ClassNotFoundException {
-        byte[] data = Base64.getDecoder().decode(s);
-        ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(data));
-        Object o = ois.readObject();
-        ois.close();
-        return o;
-    }
-
-    /**
-     * Write the object to a Base64 string.
-     *
-     * @param o The object to be serialized.
-     * @return The string of the serialized object.
-     * @throws IOException when encoding fails.
-     */
-    private static String makeString(Serializable o) throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = new ObjectOutputStream(baos);
-        oos.writeObject(o);
-        oos.close();
-        return Base64.getEncoder().encodeToString(baos.toByteArray());
-    }
-
-    /**
-     * Right way to delete a non empty directory in Java
-     *
-     * @param dir The directory to be deleted (empty or not).
-     * @return A boolean value indicating the success or failure of the task.
-     */
-    private static boolean deleteDirectory(File dir) {
-        if (dir.isDirectory()) {
-            File[] children = dir.listFiles();
-            for (int i = 0; i < (children != null ? children.length : 0); i++) {
-                boolean success = deleteDirectory(children[i]);
-                if (!success) {
-                    return false;
-                }
-            }
-        }
-        return dir.delete();
-    }
-
     @Override
     public NodeInfo find_successor(int id, Result result) throws RemoteException {
         log.debug("Searching for the successor of id: " + id);
@@ -558,16 +510,6 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
         }
         return this.node;
     }
-
-	/*
-    (1) Check if successor is dead (try pinging/reaching it twice).
-	(2) Find the next finger table entry that does not point either to me or to the dead successor.
-	(3) Once such a finger table entry is found, query that node for its predecessor.
-	(3a) In a loop, follow the predecessor chain till you find the node whose predecessor is our dead successor.
-	(3b) Set my successor as that node and set the predecessor of that node as me.
-	(3c) Inform bootstrap to update its list of active chord nodes.
-	(4) If no such finger table entry is found, contact bootstrap to return a different successor.
-	*/
 
     public void init_finger_table(NodeInfo n, Result result) throws RemoteException {
         ChordNode c;
@@ -648,6 +590,16 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
             }
         }
     }
+
+	/*
+    (1) Check if successor is dead (try pinging/reaching it twice).
+	(2) Find the next finger table entry that does not point either to me or to the dead successor.
+	(3) Once such a finger table entry is found, query that node for its predecessor.
+	(3a) In a loop, follow the predecessor chain till you find the node whose predecessor is our dead successor.
+	(3b) Set my successor as that node and set the predecessor of that node as me.
+	(3c) Inform bootstrap to update its list of active chord nodes.
+	(4) If no such finger table entry is found, contact bootstrap to return a different successor.
+	*/
 
     @Override
     public void send_beat() throws RemoteException {
@@ -833,7 +785,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 		P.S. Only after operation (4) is the new node actually connected to the ring.
 		Once predecessor knows about the new node, other nodes in the ring
 		will eventually learn of it through fix fingers.
-
+		
 		Note: Don't change the order.
 		This order ensures that the new node does not receive any key-related requests
 		before it joins the ring.
@@ -1190,5 +1142,55 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                 e.printStackTrace();
             }
         }
+    }
+
+    /**
+     * Read the object from Base64 string.
+     *
+     * @param s The serialized object.
+     * @return The deserialized object.
+     * @throws IOException            when decoding fails.
+     * @throws ClassNotFoundException when readObj fails.
+     */
+    private static Object fromString(String s) throws IOException, ClassNotFoundException {
+        byte[] data = Base64.getDecoder().decode(s);
+        ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(data));
+        Object o = ois.readObject();
+        ois.close();
+        return o;
+    }
+
+    /**
+     * Write the object to a Base64 string.
+     *
+     * @param o The object to be serialized.
+     * @return The string of the serialized object.
+     * @throws IOException when encoding fails.
+     */
+    private static String makeString(Serializable o) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(o);
+        oos.close();
+        return Base64.getEncoder().encodeToString(baos.toByteArray());
+    }
+
+    /**
+     * Right way to delete a non empty directory in Java
+     *
+     * @param dir The directory to be deleted (empty or not).
+     * @return A boolean value indicating the success or failure of the task.
+     */
+    private static boolean deleteDirectory(File dir) {
+        if (dir.isDirectory()) {
+            File[] children = dir.listFiles();
+            for (int i = 0; i < (children != null ? children.length : 0); i++) {
+                boolean success = deleteDirectory(children[i]);
+                if (!success) {
+                    return false;
+                }
+            }
+        }
+        return dir.delete();
     }
 }

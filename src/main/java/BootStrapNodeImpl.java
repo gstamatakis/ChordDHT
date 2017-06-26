@@ -15,8 +15,6 @@ import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-import static sun.management.jmxremote.ConnectorBootstrap.PropertyNames.RMI_PORT;
-
 public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapNode {
     private static final long serialVersionUID = 1L;
 
@@ -54,7 +52,7 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
         }
     }
 
-    public ArrayList<NodeInfo> addNodeToRing(String ipaddress, String port) throws RemoteException {
+    public ArrayList<NodeInfo> addNodeToRing(String ipaddress, String port, int zoneID) throws RemoteException {
         synchronized (this) {
             if (nodeList.size() == maxNodes) {
                 System.out.println("No more node joins allowed as Chord network has reached it capacity");
@@ -68,71 +66,105 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
                 ArrayList<Integer> randomIds;//Stores the set of random Ids generated for the network proximity method
                 ArrayList<Integer> succIds;
                 ArrayList<Integer> predIds;
+                if (zoneID < 0) {//If zoneID < 0, then opt for the proximity based identifier assignment method for node identifier assignment
+                    randomIds = new ArrayList<>();
+                    succIds = new ArrayList<>();
+                    predIds = new ArrayList<>();
 
-                randomIds = new ArrayList<>();
-                succIds = new ArrayList<>();
-                predIds = new ArrayList<>();
-
-                int i;
-                int freeZoneCnt = 0;
-                for (i = 0; i < m; i++) {//For each zone in the ring
-                    boolean isFilled = isZoneFilled(i);
-                    if (!isFilled) {//If zone is not completely filled, then generate a random ID in the corresponding zone range
-                        freeZoneCnt++;
-                        boolean repeat = true;
-                        while (repeat) {
-                            timeStamp = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss.SSS").format(new Date());
+                    int i;
+                    int freeZoneCnt = 0;
+                    for (i = 0; i < m; i++) {//For each zone in the ring
+                        boolean isFilled = isZoneFilled(i);
+                        if (!isFilled) {//If zone is not completely filled, then generate a random ID in the corresponding zone range
+                            freeZoneCnt++;
+                            boolean repeat = true;
+                            while (repeat) {
+                                timeStamp = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss.SSS").format(new Date());
+                                try {
+                                    nodeID = generate_ID(ipaddress + port + timeStamp, maxNodes);
+                                } catch (NoSuchAlgorithmException e) {
+                                    e.printStackTrace();
+                                }
+                                if (nodeID >= i * m && nodeID < (i + 1) * m && nodeIds.indexOf(nodeID) == -1 && randomIds.indexOf(nodeID) == -1) {
+                                    repeat = false;
+                                }
+                            }
+                            randomIds.add(nodeID);
+                            copy.add(nodeID);
+                            Collections.sort(copy);
+                            succIds.add(nodeIds.get((nodeIds.indexOf(nodeID) + 1) % noOfNodes));
+                            predIds.add(nodeIds.get((nodeIds.indexOf(nodeID) - 1 + noOfNodes) % noOfNodes));
+                            copy.remove(new Integer(nodeID));
+                        }
+                    }
+                    //If only one zone was found to be free directly add to the nodeIds list
+                    if (freeZoneCnt == 1) {
+                        NodeInfo ni = new NodeInfo(ipaddress, port, nodeID);
+                        nodes.put(nodeID, ni);
+                        nodeIds.add(nodeID);
+                        nodeList.add(ni);
+                        System.out.println("New node added to ring with ID: " + nodeID);
+                    } else {//Calculate the latency for each probable ID and choose the best
+                        int k;
+                        long minLatency = Long.MAX_VALUE;
+                        for (k = 0; k < randomIds.size(); k++) {
+                            randomIds.get(k);
+                            int succ_id = succIds.get(k);
+                            predIds.get(k);
+                            long startTime = System.currentTimeMillis();
+                            ChordNode c = null;
                             try {
-                                nodeID = generate_ID(ipaddress + port + timeStamp, maxNodes);
-                            } catch (NoSuchAlgorithmException e) {
+                                c = (ChordNode) Naming.lookup("rmi://" + ipaddress + "/ChordNode_" + port);
+                            } catch (MalformedURLException | NotBoundException e) {
                                 e.printStackTrace();
                             }
-                            if (nodeID >= i * m && nodeID < (i + 1) * m && nodeIds.indexOf(nodeID) == -1 && randomIds.indexOf(nodeID) == -1) {
-                                repeat = false;
+                            assert c != null;
+                            c.makeCall(nodes.get(succ_id));
+                            long endTime = System.currentTimeMillis();
+                            long timetaken = endTime - startTime;
+                            if (timetaken < minLatency) {
+                                minLatency = timetaken;
                             }
                         }
-                        randomIds.add(nodeID);
-                        copy.add(nodeID);
-                        Collections.sort(copy);
-                        succIds.add(nodeIds.get((nodeIds.indexOf(nodeID) + 1) % noOfNodes));
-                        predIds.add(nodeIds.get((nodeIds.indexOf(nodeID) - 1 + noOfNodes) % noOfNodes));
-                        copy.remove(new Integer(nodeID));
+                        NodeInfo ni = new NodeInfo(ipaddress, port, nodeID);
+                        nodes.put(nodeID, ni);
+                        nodeIds.add(nodeID);
+                        nodeList.add(ni);
+                        System.out.println("New node added to ring with ID: " + nodeID);
+                    }
+                } else {//If zoneID >= 0, then opt for topology aware zone selection mechanism for node identifier assignment
+                    //Ensure that even if zoneID is entered incorrectly by the user, it falls withing the expected range.
+                    if (zoneID < 0 || zoneID >= m) {
+                        zoneID = zoneID % m;//This does the trick.
+                    }
+                    boolean isZoneFilled = isZoneFilled(zoneID);
+                    try {
+                        if (!isZoneFilled) {//If zone is not full, then generate an ID in its range and assign
+                            do {
+                                //Keep generating a new nodeID so long as it does not fall within the the range specified for the zone ID.
+                                timeStamp = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss.SSS").format(new Date());
+                                nodeID = generate_ID(ipaddress + port + timeStamp, maxNodes);
+                            }
+                            while (nodeID < m * zoneID || nodeID >= m * (zoneID + 1) || nodeIds.indexOf(nodeID) != -1);
+                        } else {//If zone is full, then assign a random ID from other zones
+                            do {
+                                timeStamp = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss.SSS").format(new Date());
+                                nodeID = generate_ID(ipaddress + port + timeStamp, maxNodes);
+                            } while (nodeIds.indexOf(nodeID) != -1);
+                        }
+                        if (nodeIds.indexOf(nodeID) == -1) {
+                            NodeInfo ni = new NodeInfo(ipaddress, port, nodeID);
+                            nodes.put(nodeID, ni);
+                            nodeIds.add(nodeID);
+                            nodeList.add(ni);
+                        }
+                        System.out.println("New node added to ring with ID: " + nodeID);
+                    } catch (Exception e) {
+                        System.out.println("Error in hashing function");
+                        e.printStackTrace();
+                        return null;
                     }
                 }
-                //If only one zone was found to be free directly add to the nodeIds list
-                if (freeZoneCnt == 1) {
-                    NodeInfo ni = new NodeInfo(ipaddress, port, nodeID);
-                    nodes.put(nodeID, ni);
-                    nodeIds.add(nodeID);
-                    nodeList.add(ni);
-                } else {
-                    int k;
-                    long minLatency = Long.MAX_VALUE;
-                    for (k = 0; k < randomIds.size(); k++) {
-                        randomIds.get(k);
-                        int succ_id = succIds.get(k);
-                        predIds.get(k);
-                        long startTime = System.currentTimeMillis();
-                        ChordNode c = null;
-                        try {
-                            c = (ChordNode) Naming.lookup("rmi://" + ipaddress + "/ChordNode_" + port);
-                        } catch (MalformedURLException | NotBoundException e) {
-                            e.printStackTrace();
-                        }
-                        assert c != null;
-                        c.makeCall(nodes.get(succ_id));
-                        long endTime = System.currentTimeMillis();
-                        long timetaken = endTime - startTime;
-                        if (timetaken < minLatency) {
-                            minLatency = timetaken;
-                        }
-                    }
-                    NodeInfo ni = new NodeInfo(ipaddress, port, nodeID);
-                    nodes.put(nodeID, ni);
-                    nodeIds.add(nodeID);
-                    nodeList.add(ni);
-                }
-                System.out.println("New node added to ring with ID: " + nodeID);
 
                 Collections.sort(nodeIds);
                 int successor = nodeIds.get((nodeIds.indexOf(nodeID) + 1) % noOfNodes);//Get the successor node
@@ -144,6 +176,8 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
                 result.add(nodes.get(successor));
                 result.add(nodes.get(predecessor));
 
+                //This section contains the code to test the protocol on deploying in multiple systems and has entire metrics collection 
+                //modules too as part of it
                 return result;
             }
         }
