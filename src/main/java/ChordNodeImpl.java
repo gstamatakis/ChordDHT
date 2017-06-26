@@ -29,8 +29,8 @@ import static java.lang.Thread.sleep;
 
 public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
-    private static final int StabilizePeriod = 2000; // 2 sec
-    private static final int FixFingerPeriod = 2000; // 2 sec
+    private static final int StabilizePeriod = 4000; // 4 sec
+    private static final int FixFingerPeriod = 4000; // 4 sec
     private static final long serialVersionUID = 1L;
     public static int m = 16;
     public static int maxNodes = (int) Math.pow(2.0, (long) m);         // Maximum number of permitted nodes in the Chord Ring
