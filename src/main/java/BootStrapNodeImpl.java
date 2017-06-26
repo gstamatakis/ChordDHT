@@ -18,8 +18,8 @@ import java.util.*;
 public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapNode {
     private static final long serialVersionUID = 1L;
 
-    public static int maxNodes = 2 ^ 32;    // Maximum number of permitted nodes in the Chord Ring
-    public static int m = 32;               // maxNodes = 2^m;
+    public static int maxNodes = 2 ^ 8;    // Maximum number of permitted nodes in the Chord Ring
+    public static int m = 8;               // maxNodes = 2^m;
     public static HashMap<Integer, NodeInfo> nodes = new HashMap<>();// Variables to identify the nodes in the Chord Ring
     private static int noOfNodes = 0;
     private static ArrayList<NodeInfo> nodeList = new ArrayList<>();
