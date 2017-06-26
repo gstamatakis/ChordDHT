@@ -78,7 +78,7 @@ public class ChordNodeImplTest {
             return;
         }
 
-        ArrayList<NodeInfo> nodes = bootstrap.addNodeToRing(nodeIPAddress, num + "");
+        ArrayList<NodeInfo> nodes = bootstrap.addNodeToRing(nodeIPAddress, num + "",5);
         if (nodes != null) {
             cni.node = nodes.get(0);
             FingerTableEntry fte = new FingerTableEntry((cni.node.nodeID + 1) % maxNodes, nodes.get(1));
