@@ -1,4 +1,5 @@
 import org.junit.Assert;
+import org.junit.jupiter.api.Test;
 
 import java.net.MalformedURLException;
 import java.rmi.Naming;
@@ -6,14 +7,17 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 
-
-class ChordNodeImplTest {
+/**
+ * Created  by gstamatakis on 26-Jun-17.
+ */
+public class ChordNodeImplTest{
     /**
      * Tests insertion of a key-value pair in the ring.
      *
      * @throws RemoteException In case of an RMI exception.
      */
-    @org.junit.jupiter.api.Test
+
+    @Test
     void insert_key() throws RemoteException {
         BootStrapNode bootstrap = null;
         ChordNode c;
@@ -82,12 +86,12 @@ class ChordNodeImplTest {
         }
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     void delete_key() {
         Assert.fail();
     }
 
-    @org.junit.jupiter.api.Test
+    @Test
     void get_value() {
         Assert.fail();
     }
