@@ -1,3 +1,7 @@
+import org.apache.log4j.FileAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
 import org.junit.Assert;
 import org.junit.jupiter.api.Test;
 
@@ -6,11 +10,18 @@ import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Scanner;
 
 /**
  * Created  by gstamatakis on 26-Jun-17.
  */
-public class ChordNodeImplTest{
+public class ChordNodeImplTest {
+    private BootStrapNode bootstrap;
+    private int num = 0;
+    private int maxNodes = 32;
+
     /**
      * Tests insertion of a key-value pair in the ring.
      *
@@ -19,13 +30,24 @@ public class ChordNodeImplTest{
 
     @Test
     void insert_key() throws RemoteException {
-        BootStrapNode bootstrap = null;
         ChordNode c;
         ChordNodeImpl cni;
-        int num = 0;
-        long startTime;
+        long startTime, endTime, timetaken;
         Result result = new Result();
-        int maxNodes = 32; // maxNodes = 2^m
+
+        // Logging Module initialize
+        PatternLayout layout = new PatternLayout();
+        String conversionPattern = "%-7p %d [%t] %c %x - %m%n";
+        layout.setConversionPattern(conversionPattern);
+
+        // creates file appender
+        FileAppender fileAppender = new FileAppender();
+
+        fileAppender.setFile("logs/chord.log");
+        fileAppender.setLayout(layout);
+        fileAppender.activateOptions();
+
+        //logger assign
 
         String nodeIPAddress = "localhost";
         int zoneID = Integer.parseInt("5");
@@ -36,7 +58,8 @@ public class ChordNodeImplTest{
             String rmiUrl = "rmi://" + "147.27.70.106" + "/ChordRing";
             bootstrap = (BootStrapNode) Naming.lookup(rmiUrl);
         } catch (MalformedURLException | RemoteException | NotBoundException e) {
-            Assert.fail(e.toString());
+            e.printStackTrace();
+            Assert.fail();
         }
 
         try {
@@ -60,8 +83,6 @@ public class ChordNodeImplTest{
             return;
         }
 
-        Assert.assertNotNull(bootstrap);
-
         ArrayList<NodeInfo> nodes = bootstrap.addNodeToRing(nodeIPAddress, num + "", zoneID);
         if (nodes != null) {
             cni.node = nodes.get(0);
@@ -69,20 +90,38 @@ public class ChordNodeImplTest{
             cni.fingertable[0] = fte;
             cni.predecessor = nodes.get(2);
         } else {
-            Assert.fail();
             return;
         }
 
+        fileAppender.close();
+        fileAppender = new FileAppender();
+        fileAppender.setFile("logs/chord_" + cni.node.nodeID + ".log");
+        fileAppender.setLayout(layout);
+        fileAppender.setAppend(false);
+        fileAppender.activateOptions();
+
+        cni.bootstrap = this.bootstrap;
         cni.run(result);
 
-        for (int i = 0; i < 1000; i++) {
-            String key = String.valueOf(i);
-            String value = "Value " + i;
+        String key, value;
+        boolean res;
+
+        for (int i = 0; i < 10; i++) {
+            System.out.println("Inserting key: " + i);
+            key = String.valueOf(i);
+            System.out.println("Inserting value: value" + i);
+            value = "value" + i;
             Result insHops = new Result();
-            boolean res = cni.insert_key(key, value, insHops);
-            if (!res) {
-                Assert.fail("Unsuccessful insertion!");
+            startTime = System.currentTimeMillis();
+            res = cni.insert_key(key, value, insHops);
+            if (res)
+                System.out.println(key + ": " + value + " successfully inserted.");
+            else {
+                Assert.fail("Insertion unsuccessful!");
             }
+            endTime = System.currentTimeMillis();
+            timetaken = endTime - startTime;
+            System.out.println("Time taken for i`th insertion: " + timetaken);
         }
     }
 

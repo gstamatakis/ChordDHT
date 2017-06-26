@@ -11,7 +11,7 @@
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="ChordDHT" target="1.7" />
+      <module name="ChordDHT" target="1.8" />
       <module name="ChordDictionary" target="1.5" />
     </bytecodeTargetLevel>
   </component>

@@ -3,11 +3,16 @@
  * has all the associated function to support various operations.
  */
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 
+import javax.imageio.IIOException;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.*;
 import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.rmi.Naming;
@@ -41,12 +46,17 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
     public NodeInfo predecessor;
     private ArrayList<HashMap<String, Result>> metrics;
 
+    /**
+     * The number of pixels (vertically) of each image chunk
+     */
+    public static final int IMAGE_STEP = 4;
+
     protected ChordNodeImpl(NodeInfo node) throws RemoteException {
         super();
         this.node = node;
         this.predecessor = null;
         this.fingertable = new FingerTableEntry[fingerTableSize];
-        this.metrics = new ArrayList<HashMap<String, Result>>();
+        this.metrics = new ArrayList<>();
     }
 
     public ChordNodeImpl() throws RemoteException {
@@ -54,7 +64,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
         this.node = null;
         this.predecessor = null;
         this.fingertable = new FingerTableEntry[fingerTableSize];
-        this.metrics = new ArrayList<HashMap<String, Result>>();
+        this.metrics = new ArrayList<>();
     }
 
     /**
@@ -163,7 +173,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
         while (running) {
             System.out.println("\nMenu: \n1. Print Finger Table"
-                    + "\n2. Get Key \n3. Put Key \n4. Delete Key \n5. Display data stored \n9. Leave Chord Ring");
+                    + "\n2. Get Key \n3. Put Key \n4. Delete Key \n5. Display data stored \n6. Insert file \n9. Leave Chord Ring");
             System.out.println("Enter your choice: ");
             try {
                 choice = sc.nextInt();
@@ -242,6 +252,109 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                     System.out.println("Printing all data stored in the node");
                     cni.display_data_stored();
                     break;
+                case 6:
+                    try {
+                        System.out.println("File name: ");
+                        String resource = sc.nextLine();
+                        String res2 = resource.substring(0, resource.lastIndexOf("."));
+                        switch (FilenameUtils.getExtension(resource)) {
+                            case "png":
+                                final BufferedImage source = ImageIO.read(new File("resources/" + resource));
+                                int idx = 0;
+                                File dir = new File(res2 + "_parts");
+                                deleteDirectory(dir);
+                                if (!dir.mkdir()) {
+                                    throw new Exception("Failed to create a new directory..");
+                                }
+                                for (int y = 0; y < source.getHeight(); y += IMAGE_STEP) {
+                                    File file = new File(dir + "/" + res2 + idx++ + ".png");
+                                    ImageIO.write(source.getSubimage(0, y, 128, IMAGE_STEP), "png", file);
+                                    ImageCanvas imageCanvas = new ImageCanvas();
+                                    imageCanvas.images.add(ImageIO.read(file));
+                                    cni.insert_key(res2 + String.valueOf(idx - 1), makeString(imageCanvas), new Result());
+                                }
+                                deleteDirectory(new File(res2 + "_parts"));
+                                break;
+
+                            default:
+                                try {
+                                    String Line;
+                                    BufferedReader BufferedReader = new BufferedReader(new FileReader(new File("resources/" + resource)));
+                                    while ((Line = BufferedReader.readLine()) != null) {
+                                        cni.insert_key(Line, "Explanation of " + Line, new Result());
+
+                                    }
+                                    BufferedReader.close();
+                                } catch (Exception e) {
+                                    System.out.println("Unrecognised file..");
+                                }
+                                break;
+                        }
+                    } catch (FileNotFoundException ex) {
+                        System.out.println("File not found...");
+                        ex.printStackTrace();
+                    } catch (IIOException e) {
+                        System.out.println("Unable to load file");
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        System.out.println("Final block of loadFile exception catcher!");
+                    }
+                    System.out.println("File uploaded successfully..");
+                    break;
+                case 7:
+                    try {
+                        System.out.println("File name: ");
+                        String resource = sc.nextLine();
+                        String res3 = resource.substring(0, resource.lastIndexOf("."));
+                        switch (FilenameUtils.getExtension(resource)) {
+                            case "png":
+                                BufferedImage finalImg = null;
+                                File dir = null;
+                                for (int i = 0; ; i++) {
+                                    String out = cni.get_value(res3 + i, new Result());
+                                    if (out == null) {
+                                        break;
+                                    } else if (i == 0) {
+                                        dir = new File(res3 + "_out");
+                                        deleteDirectory(dir);
+                                        if (!dir.mkdir()) {
+                                            throw new IOException("Failed to create a new directory..");
+                                        }
+                                    }
+                                    ImageCanvas Value = (ImageCanvas) fromString(out);
+                                    File file = new File(dir + "/" + res3 + i + ".png");
+                                    BufferedImage image = Value.images.get(0);
+                                    if (i == 0) {
+                                        finalImg = new BufferedImage(128, 128, image.getType());
+                                    }
+                                    ImageIO.write(image, "png", file);
+                                    finalImg.createGraphics().drawImage(image, 0, i * IMAGE_STEP, null);
+                                    System.out.println("Image part number " + (i + 1) + " retrieved!");
+                                }
+                                if (finalImg != null) {
+                                    File outFile = new File(res3 + ".png");
+
+                                    deleteDirectory(outFile);
+                                    deleteDirectory(new File(res3 + "_out"));
+
+                                    ImageIO.write(finalImg, "png", outFile);
+                                    System.out.println("Image retrieved successfully..");
+                                } else {
+                                    System.out.println("Image not found..");
+                                }
+                                break;
+
+                        }
+                    } catch (IOException e) {
+                        System.out.println("Can not overwrite files.." +
+                                "\nHave you deleted the parts_ folder?");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    break;
+
                 case 9:
                     Result lhops = new Result();
                     startTime = System.currentTimeMillis();
@@ -975,5 +1088,55 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                 e.printStackTrace();
             }
         }
+    }
+
+    /**
+     * Read the object from Base64 string.
+     *
+     * @param s The serialized object.
+     * @return The deserialized object.
+     * @throws IOException when decoding fails.
+     * @throws ClassNotFoundException when readObj fails.
+     */
+    private static Object fromString(String s) throws IOException, ClassNotFoundException {
+        byte[] data = Base64.getDecoder().decode(s);
+        ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(data));
+        Object o = ois.readObject();
+        ois.close();
+        return o;
+    }
+
+    /**
+     * Write the object to a Base64 string.
+     *
+     * @param o The object to be serialized.
+     * @return The string of the serialized object.
+     * @throws IOException when encoding fails.
+     */
+    private static String makeString(Serializable o) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(o);
+        oos.close();
+        return Base64.getEncoder().encodeToString(baos.toByteArray());
+    }
+
+    /**
+     * Right way to delete a non empty directory in Java
+     *
+     * @param dir The directory to be deleted (empty or not).
+     * @return A boolean value indicating the success or failure of the task.
+     */
+    private static boolean deleteDirectory(File dir) {
+        if (dir.isDirectory()) {
+            File[] children = dir.listFiles();
+            for (int i = 0; i < (children != null ? children.length : 0); i++) {
+                boolean success = deleteDirectory(children[i]);
+                if (!success) {
+                    return false;
+                }
+            }
+        }
+        return dir.delete();
     }
 }
