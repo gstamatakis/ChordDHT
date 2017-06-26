@@ -30,8 +30,8 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
     private static final int StabilizePeriod = 5000; // 5 seconds
     private static final int FixFingerPeriod = 5000; // 5 seconds
     private static final long serialVersionUID = 1L;
-    public static int m = 5;
-    private static int maxNodes = 32; // maxNodes = 2^m
+    public static int m = 32;
+    private static int maxNodes = 2 ^ 32; // maxNodes = 2^m
     public static BootStrapNode bootstrap;
     private static int num = 0;  // used during rmi registry binding
     private static int fingerTableSize = 2 * m - 1; // finger table size
