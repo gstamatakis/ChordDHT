@@ -364,6 +364,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                         bw.write("\nCount\tPut(ms)\tGet(ms)");
                         bw.newLine();
                         for (int cnt = 1; cnt <= numOfKeys; cnt *= 2) {
+                            bw.flush();
                             bw.write(cnt + "\t");
                             System.out.println("Count: " + cnt);
 
