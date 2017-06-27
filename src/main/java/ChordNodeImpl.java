@@ -1183,4 +1183,76 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
             }
         }
     }
+//
+//    public void exp1() {
+//        Thread t1 = new Thread(new Runnable() {
+//            public void run() {
+//                //
+//                try {
+//                    Result insHops = new Result();
+//                    ChordNode c = (ChordNode) Naming.lookup("rmi://" + nodeList.get(0).ipaddress + "/ChordNode_" + nodeList.get(0).port);
+//                    int testOps = 0;
+//                    for (int i = 0; i < testKeyCount / 3; i++) {
+//                        System.out.println("THREAD 1 : Inserting Key : " + TestKeysList.get(i));
+//                        c.insert_key(TestKeysList.get(i), TestKeysList.get(i), insHops);
+//                        testOps++;
+//                    }
+//                    insHops.latency = c.get_insert_latency();
+//                    insHops.hopCount = c.get_insert_hopcount();
+//                    System.out.println("Got latency from thread 1 : " + insHops.latency);
+//                    stats.add(insHops);
+//                    testOpsStat[0] = true;
+//                } catch (MalformedURLException | RemoteException | NotBoundException e) {
+//                    e.printStackTrace();
+//                    //log.error(e.getClass() + ": " +  e.getMessage() + ": " + e.getCause() + "\n" +  e.getStackTrace().toString(),e);
+//                }
+//            }
+//        });
+//        Thread t2 = new Thread(new Runnable() {
+//            public void run() {
+//                try {
+//                    Result insHops = new Result();
+//                    ChordNode c = (ChordNode) Naming.lookup("rmi://" + nodeList.get(1).ipaddress + "/ChordNode_" + nodeList.get(1).port);
+//                    int testOps = 0;
+//                    for (int i = (testKeyCount / 3); i < ((2 * testKeyCount) / 3); i++) {
+//                        System.out.println("THREAD 2 : Inserting Key : " + TestKeysList.get(i));
+//                        c.insert_key(TestKeysList.get(i), TestKeysList.get(i), insHops);
+//                        testOps++;
+//                    }
+//                    insHops.latency = c.get_insert_latency();
+//                    insHops.hopCount = c.get_insert_hopcount();
+//                    System.out.println("Got latency from thread 2 : " + insHops.latency);
+//                    stats.add(insHops);
+//                    testOpsStat[1] = true;
+//                } catch (MalformedURLException | RemoteException | NotBoundException e) {
+//                    e.printStackTrace();
+//                    //log.error(e.getClass() + ": " +  e.getMessage() + ": " + e.getCause() + "\n" +  e.getStackTrace().toString(),e);
+//                }
+//            }
+//        });
+//        Thread t3 = new Thread(new Runnable() {
+//            public void run() {
+//                //
+//                try {
+//                    Result insHops = new Result();
+//                    ChordNode c = (ChordNode) Naming.lookup("rmi://" + nodeList.get(2).ipaddress + "/ChordNode_" + nodeList.get(2).port);
+//                    int testOps = 0;
+//                    for (int i = ((2 * testKeyCount) / 3); i < testKeyCount; i++) {
+//                        System.out.println("THREAD 3 : Inserting Key : " + TestKeysList.get(i));
+//                        c.insert_key(TestKeysList.get(i), TestKeysList.get(i), insHops);
+//                        testOps++;
+//                    }
+//                    insHops.latency = c.get_insert_latency();
+//                    insHops.hopCount = c.get_insert_hopcount();
+//                    System.out.println("Got latency from thread 2 : " + insHops.latency);
+//                    stats.add(insHops);
+//                    testOpsStat[2] = true;
+//                } catch (MalformedURLException | RemoteException | NotBoundException e) {
+//                    e.printStackTrace();
+//                    //log.error(e.getClass() + ": " +  e.getMessage() + ": " + e.getCause() + "\n" +  e.getStackTrace().toString(),e);
+//                }
+//            }
+//        });
+//
+//    }
 }
