@@ -1,8 +1,3 @@
-/*
- * This class serves as the starting point for any Chord Node instance that will be spawned and
- * has all the associated function to support various operations.
- */
-
 import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
@@ -29,18 +24,15 @@ import static java.lang.Thread.sleep;
 
 public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
-    /**
-     * The number of pixels (vertically) of each image chunk
-     */
+    public static int m = 8;
     public static final int IMAGE_STEP = 4;
-    private static final int StabilizePeriod = 4000; // 4 sec
-    private static final int FixFingerPeriod = 4000; // 4 sec
+    private static final int StabilizePeriod = 10000; // 10 sec
+    private static final int FixFingerPeriod = 10000; // 10 sec
     private static final long serialVersionUID = 1L;
-    public static int m = 3;
     public static int maxNodes = (int) Math.pow(2.0, (long) m);         // Maximum number of permitted nodes in the Chord Ring
     public static BootStrapNode bootstrap;
     private static int num = 0;  // used during rmi registry binding
-    private static int fingerTableSize = 2 * m - 1; // finger table size
+    private static int fingerTableSize = m - 1; // finger table size
     private static int fix_finger_count = 0; // store the id of next finger entry to update
     private static Timer timerStabilize = new Timer();
     private static Timer timerFixFinger = new Timer();

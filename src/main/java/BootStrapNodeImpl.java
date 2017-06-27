@@ -16,9 +16,9 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapNode {
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 10L;
 
-    public static int m = 3;
+    public static int m = 8;
     public static int maxNodes = (int) Math.pow(2.0, (long) m);         // Maximum number of permitted nodes in the Chord Ring
     public static HashMap<Integer, NodeInfo> nodes = new HashMap<>();   // Variables to identify the nodes in the Chord Ring
     private static int noOfNodes = 0;
