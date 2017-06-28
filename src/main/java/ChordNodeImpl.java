@@ -17,9 +17,7 @@ import java.rmi.server.UnicastRemoteObject;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 
@@ -71,7 +69,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
         ChordNode c;
         ChordNodeImpl cni;
         boolean running = true;
-        long startTime = 0, endTime = 0, timetaken;
+        long startTime, endTime = 0, timetaken;
         Result result = new Result();
         HashMap<String, Result> met;
 
@@ -353,6 +351,9 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                     ExecutorService executorServicePUT = Executors.newFixedThreadPool(4);
                     ExecutorService executorServiceGET = Executors.newFixedThreadPool(4);
 
+                    List<Callable<Integer>> putCallables = new ArrayList<>();
+                    List<Callable<Integer>> getCallables = new ArrayList<>();
+
                     int numOfKeys = Integer.parseInt(sc.nextLine());
                     try (BufferedWriter bw = new BufferedWriter(new FileWriter("benchmark.txt", true))) {
                         bw.newLine();
@@ -361,104 +362,104 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                         for (int cnt = 1; cnt <= numOfKeys; cnt *= 2) {
                             bw.write(cnt + "\t");
                             System.out.println("Count: " + cnt);
+
                             int finalCnt = cnt;
 
                             //PUT
                             startTime = System.currentTimeMillis();
-                            executorServicePUT.execute(() -> {
+                            putCallables.add(() -> {
                                 for (int i = 0; i <= finalCnt; i += 4) {
                                     String key1 = String.valueOf(finalCnt * i);
                                     String value1 = String.valueOf("value_t1" + i);
                                     Result result1 = new Result();
                                     cni.insert_key(key1, value1, result1);
                                 }
+                                return 0;
                             });
 
-                            executorServicePUT.execute(() -> {
+                            putCallables.add(() -> {
                                 for (int i = 1; i <= finalCnt; i += 4) {
                                     String key1 = String.valueOf(finalCnt * i);
                                     String value1 = String.valueOf("value_t2" + i);
                                     Result result1 = new Result();
                                     cni.insert_key(key1, value1, result1);
                                 }
+                                return 0;
                             });
 
-                            executorServicePUT.execute(() -> {
+                            putCallables.add(() -> {
                                 for (int i = 2; i <= finalCnt; i += 4) {
                                     String key1 = String.valueOf(finalCnt * i);
                                     String value1 = String.valueOf("value_t3" + i);
                                     Result result1 = new Result();
                                     cni.insert_key(key1, value1, result1);
                                 }
+                                return 0;
                             });
 
-                            executorServicePUT.execute(() -> {
+                            putCallables.add(() -> {
                                 for (int i = 3; i <= finalCnt; i += 4) {
                                     String key1 = String.valueOf(finalCnt * i);
                                     String value1 = String.valueOf("value_t4" + i);
                                     Result result1 = new Result();
                                     cni.insert_key(key1, value1, result1);
                                 }
+                                return 0;
                             });
-                            try {
-                                System.out.println("attempt to shutdown PUT executor");
-                                executorServicePUT.shutdown();
-                                executorServicePUT.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
-                                endTime = System.currentTimeMillis();
-                            } catch (InterruptedException e) {
-                                System.err.println("tasks interrupted");
-                            } finally {
-                                if (!executorServicePUT.isTerminated()) {
-                                    System.err.println("cancel non-finished tasks");
-                                }
-                                executorServicePUT.shutdownNow();
-                                System.out.println("shutdown finished");
-                            }
+
+                            executorServicePUT.invokeAll(putCallables);
+                            endTime = System.currentTimeMillis();
                             timetaken = endTime - startTime;
                             bw.write(timetaken + "\t");
 
                             //GET
                             startTime = System.currentTimeMillis();
-                            executorServiceGET.execute(() -> {
+                            getCallables.add(() -> {
                                 for (int i = 0; i <= finalCnt; i += 4) {
                                     String key1 = String.valueOf(finalCnt * i);
                                     Result result1 = new Result();
                                     cni.get_value(key1, result1);
                                 }
+                                return 0;
                             });
 
-                            executorServiceGET.execute(() -> {
+                            getCallables.add(() -> {
                                 for (int i = 1; i <= finalCnt; i += 4) {
                                     String key1 = String.valueOf(finalCnt * i);
                                     Result result1 = new Result();
                                     cni.get_value(key1, result1);
                                 }
+                                return 0;
                             });
 
-                            executorServiceGET.execute(() -> {
+                            getCallables.add(() -> {
                                 for (int i = 2; i <= finalCnt; i += 4) {
                                     String key1 = String.valueOf(finalCnt * i);
                                     Result result1 = new Result();
                                     cni.get_value(key1, result1);
                                 }
+                                return 0;
                             });
 
-                            executorServiceGET.execute(() -> {
+                            getCallables.add(() -> {
                                 for (int i = 3; i <= finalCnt; i += 4) {
                                     String key1 = String.valueOf(finalCnt * i);
                                     Result result1 = new Result();
                                     cni.get_value(key1, result1);
                                 }
+                                return 0;
                             });
+                            executorServicePUT.invokeAll(getCallables);
                             endTime = System.currentTimeMillis();
                             timetaken = endTime - startTime;
                             bw.write(timetaken + "\n");
                         }
+
+                        //Shutdown both executors.
                         try {
-                            System.out.println("attempt to shutdown GET executor");
+                            System.out.println("attempt to shutdown PUT executor");
                             executorServicePUT.shutdown();
-                            executorServicePUT.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
-                            endTime = System.currentTimeMillis();
+                            executorServicePUT.awaitTermination(5, TimeUnit.SECONDS);
                         } catch (InterruptedException e) {
                             System.err.println("tasks interrupted");
                         } finally {
@@ -468,11 +469,25 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                             executorServicePUT.shutdownNow();
                             System.out.println("shutdown finished");
                         }
-                        timetaken = endTime - startTime;
-                        bw.write(timetaken + "\t");
+
+                        try {
+                            System.out.println("attempt to shutdown GET executor");
+                            executorServiceGET.shutdown();
+                            executorServiceGET.awaitTermination(5, TimeUnit.SECONDS);
+                        } catch (InterruptedException e) {
+                            System.err.println("tasks interrupted");
+                        } finally {
+                            if (!executorServiceGET.isTerminated()) {
+                                System.err.println("cancel non-finished tasks");
+                            }
+                            executorServiceGET.shutdownNow();
+                            System.out.println("shutdown finished");
+                        }
                     } catch (IOException e) {
                         e.printStackTrace();
                         return;
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
                     }
 
                     break;
