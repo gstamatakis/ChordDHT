@@ -13,12 +13,13 @@ network that handles the initial join of ever other node.
 
 ## Instructions
 1. Change the pom.xlm MainClass (line 24) as mentioned in the summary.
-2. Build the maven project by running:
+2. Build the maven project (or use the precompiled JARs) by running:
 
 
         mvn clean compile assembly:single
 
-3a. To setup the BootStrap Node run:
+3a. To setup the BootStrap Node run rmiregistry command in the target/classes folder of the bootstrap built mvn project 
+and the execute the bootstrap jar.
 
         rmiregistry &
         
@@ -26,16 +27,14 @@ network that handles the initial join of ever other node.
         
 3b. To setup the Client Node simply run (followed by example):
         
-        java -jar target/ChordDHT-1.0-SNAPSHOT-jar-with-dependencies.jar [local IP] [BootStrap Node IP] [Network length (2^m)]
+        java -jar target/ChordDHT-1.0-SNAPSHOT-jar-with-dependencies.jar [local IP] [BootStrap Node IP]
         
-        java -jar target/ChordDHT-1.0-SNAPSHOT-jar-with-dependencies.jar localhost 147.27.70.106 5        
+        java -jar target/ChordDHT-1.0-SNAPSHOT-jar-with-dependencies.jar localhost 147.27.70.106       
 
 4 . If done correctly a log would have spawned in the logs directory with additional info.
 
 5 . Use the CLI for more options.
 
-##TIPS
-1. Run rmiregistry & in the classes folder.
 
 ##Links
 1. Chord Paper: http://cs.brown.edu/courses/csci2950-g/papers/chord.pdf

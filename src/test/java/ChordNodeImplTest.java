@@ -9,9 +9,6 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 
-/**
- * Created  by gstamatakis on 26-Jun-17.
- */
 public class ChordNodeImplTest {
     private BootStrapNode bootstrap;
     private int num = 0;

@@ -3,9 +3,9 @@ import java.io.Serializable;
 public class NodeInfo implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    String ipaddress;//IP Address of the Chord Node instance
-    public String port;//The port/unique identifier of the Chord Node instance running on a system.This value differentiates multiple instance running on same system.
-    int nodeID;//The unique identifier of the Chord Node
+    String ipaddress;
+    public String port;
+    int nodeID;
 
     /**
      * Parametrized constructor

@@ -1,6 +1,6 @@
 public class FingerTableEntry {
-    public int start;//The start value for each finger table entry
-    public NodeInfo successor;//The corresponding successor Chord Node info for the start value.
+    public int start;
+    public NodeInfo successor;
 
     /**
      * Dummy constructor

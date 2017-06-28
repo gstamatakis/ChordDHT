@@ -186,10 +186,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                     Result getHops = new Result();
                     startTime = System.currentTimeMillis();
                     value = cni.get_value(key, getHops);
-                    if (value != null)
-                        System.out.println("Value is: " + value);
-                    else
-                        System.out.println("Key not found.");
+                    System.out.println(value != null ? "Value is: " + value : "Key not found.");
                     endTime = System.currentTimeMillis();
                     timetaken = endTime - startTime;
                     getHops.latency = timetaken;
@@ -207,10 +204,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                     Result insHops = new Result();
                     startTime = System.currentTimeMillis();
                     res = cni.insert_key(key, value, insHops);
-                    if (res)
-                        System.out.println(key + ": " + value + " successfully inserted.");
-                    else
-                        System.out.println("Insertion unsuccessful.");
+                    System.out.println(res ? key + ": " + value + " successfully inserted." : "Insertion unsuccessful.");
                     endTime = System.currentTimeMillis();
                     timetaken = endTime - startTime;
                     insHops.latency = timetaken;
@@ -226,10 +220,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                     Result delHops = new Result();
                     startTime = System.currentTimeMillis();
                     res = cni.delete_key(key, delHops);
-                    if (res)
-                        System.out.println(key + " successfully deleted.");
-                    else
-                        System.out.println("Key not found. Deletion unsuccessful.");
+                    System.out.println(res ? key + " successfully deleted." : "Key not found. Deletion unsuccessful.");
                     endTime = System.currentTimeMillis();
                     timetaken = endTime - startTime;
                     delHops.latency = timetaken;

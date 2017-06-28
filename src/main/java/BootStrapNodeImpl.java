@@ -1,8 +1,3 @@
-/*
- * This class serves as the starting point for the BootStrap server and
- * has functions to assist in node joins and departure while also serves
- * the purpose of collecting metrics for the improvements made.
- */
 
 import java.math.BigInteger;
 import java.net.MalformedURLException;
@@ -14,6 +9,12 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+
+/**
+ * This class serves as the starting point for the BootStrap server and
+ * has functions to assist in node joins and departure while also serves
+ * the purpose of collecting metrics for the improvements made.
+ */
 
 public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapNode {
     private static final long serialVersionUID = 10L;

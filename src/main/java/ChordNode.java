@@ -3,8 +3,6 @@ import java.rmi.RemoteException;
 import java.security.NoSuchAlgorithmException;
 
 public interface ChordNode extends Remote {
-//Group 1
-
     /**
      * This function is used to determine the successor node for a given node id.
      *
@@ -37,8 +35,6 @@ public interface ChordNode extends Remote {
      */
     NodeInfo closest_preceding_finger(int id) throws RemoteException;
 
-//Group 2
-
     /**
      * This function is called immediately after the join to initialize data structures specifically the finger table
      * entries to assist in routing.Start by initializing the table. The (i+1)th finger table entry
@@ -50,9 +46,6 @@ public interface ChordNode extends Remote {
      * @throws RemoteException Due to RMI.
      */
     void init_finger_table(NodeInfo n, Result result) throws RemoteException;
-
-//Group 3
-
 
     /**
      * The stabilize function is used to periodically verify the current nodes immediate successor and tell the successor about itself
@@ -70,9 +63,6 @@ public interface ChordNode extends Remote {
      * @throws RemoteException Due to RMI.
      */
     void fix_fingers(Result result) throws RemoteException;
-
-//Utilities
-
 
     /**
      * This function is used to update the finger table entries of Chord nodes when a node leaves the network/ring

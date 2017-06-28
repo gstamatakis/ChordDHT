@@ -11,8 +11,7 @@ import java.util.List;
 /**
  * This class is used to distribute images over the network.
  * It implements the {@link Serializable} Iface and has a single transient
- * member variable.
- * that holds the image(s) that will be sent over the network.
+ * member variable that holds the image that will be sent over the network.
  */
 
 public class ImageCanvas implements Serializable {
