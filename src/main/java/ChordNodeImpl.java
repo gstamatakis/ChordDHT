@@ -17,6 +17,9 @@ import java.rmi.server.UnicastRemoteObject;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 
@@ -355,111 +358,115 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                             bw.write(cnt + "\t");
                             System.out.println("Count: " + cnt);
 
-                            startTime = System.currentTimeMillis();
 
                             int finalCnt = cnt;
-                            Thread t1 = new Thread(() -> {
-                                for (int i = 1; i <= finalCnt; i++) {
-                                    String key1 = String.valueOf(finalCnt * i + 1);
+                            ExecutorService executorService = Executors.newFixedThreadPool(4);
+
+                            //PUT
+                            startTime = System.currentTimeMillis();
+                            executorService.submit(() -> {
+                                for (int i = 0; i <= finalCnt; i += 4) {
+                                    String key1 = String.valueOf(finalCnt * i);
                                     String value1 = String.valueOf("value_t1" + i);
                                     Result result1 = new Result();
                                     cni.insert_key(key1, value1, result1);
                                 }
                             });
-                            Thread t2 = new Thread(() -> {
-                                for (int i = 1; i <= finalCnt; i++) {
-                                    String key1 = String.valueOf(finalCnt * i + 2);
+
+                            executorService.submit(() -> {
+                                for (int i = 1; i <= finalCnt; i += 4) {
+                                    String key1 = String.valueOf(finalCnt * i);
                                     String value1 = String.valueOf("value_t2" + i);
                                     Result result1 = new Result();
                                     cni.insert_key(key1, value1, result1);
                                 }
                             });
-                            Thread t3 = new Thread(() -> {
-                                for (int i = 1; i <= finalCnt; i++) {
-                                    String key1 = String.valueOf(finalCnt * i + 3);
+
+                            executorService.submit(() -> {
+                                for (int i = 2; i <= finalCnt; i += 4) {
+                                    String key1 = String.valueOf(finalCnt * i);
                                     String value1 = String.valueOf("value_t3" + i);
                                     Result result1 = new Result();
                                     cni.insert_key(key1, value1, result1);
                                 }
                             });
-                            Thread t4 = new Thread(() -> {
-                                for (int i = 1; i <= finalCnt; i++) {
-                                    String key1 = String.valueOf(finalCnt * i + 4);
+
+                            executorService.submit(() -> {
+                                for (int i = 3; i <= finalCnt; i += 4) {
+                                    String key1 = String.valueOf(finalCnt * i);
                                     String value1 = String.valueOf("value_t4" + i);
                                     Result result1 = new Result();
                                     cni.insert_key(key1, value1, result1);
                                 }
                             });
-                            t1.start();
-                            t2.start();
-                            t3.start();
-                            t4.start();
 
                             try {
-                                t1.join();
-                                t2.join();
-                                t3.join();
-                                t4.join();
+                                System.out.println("attempt to shutdown PUT executor");
+                                executorService.shutdown();
+                                executorService.awaitTermination(5, TimeUnit.SECONDS);
                             } catch (InterruptedException e) {
-                                System.out.println("PUT e");
-                                e.printStackTrace();
+                                System.err.println("tasks interrupted");
+                            } finally {
+                                if (!executorService.isTerminated()) {
+                                    System.err.println("cancel non-finished tasks");
+                                }
+                                executorService.shutdownNow();
+                                System.out.println("shutdown finished");
                             }
-
-
                             endTime = System.currentTimeMillis();
                             timetaken = endTime - startTime;
                             bw.write(timetaken + "\t");
 
+                            //GET
                             startTime = System.currentTimeMillis();
+                            executorService.submit(() -> {
+                                for (int i = 0; i <= finalCnt; i += 4) {
+                                    String key1 = String.valueOf(finalCnt * i);
+                                    Result result1 = new Result();
+                                    cni.get_value(key1, result1);
+                                }
+                            });
 
-                            Thread t5 = new Thread(() -> {
-                                for (int i = 1; i <= finalCnt; i++) {
-                                    String key1 = String.valueOf(finalCnt * i + 1);
+                            executorService.submit(() -> {
+                                for (int i = 1; i <= finalCnt; i += 4) {
+                                    String key1 = String.valueOf(finalCnt * i);
                                     Result result1 = new Result();
                                     cni.get_value(key1, result1);
                                 }
                             });
-                            Thread t6 = new Thread(() -> {
-                                for (int i = 1; i <= finalCnt; i++) {
-                                    String key1 = String.valueOf(finalCnt * i + 2);
+
+                            executorService.submit(() -> {
+                                for (int i = 2; i <= finalCnt; i += 4) {
+                                    String key1 = String.valueOf(finalCnt * i);
                                     Result result1 = new Result();
                                     cni.get_value(key1, result1);
                                 }
                             });
-                            Thread t7 = new Thread(() -> {
-                                for (int i = 1; i <= finalCnt; i++) {
-                                    String key1 = String.valueOf(finalCnt * i + 3);
+
+                            executorService.submit(() -> {
+                                for (int i = 3; i <= finalCnt; i += 4) {
+                                    String key1 = String.valueOf(finalCnt * i);
                                     Result result1 = new Result();
                                     cni.get_value(key1, result1);
                                 }
                             });
-                            Thread t8 = new Thread(() -> {
-                                for (int i = 1; i <= finalCnt; i++) {
-                                    String key1 = String.valueOf(finalCnt * i + 4);
-                                    Result result1 = new Result();
-                                    cni.get_value(key1, result1);
-                                }
-                            });
-                            t5.start();
-                            t6.start();
-                            t7.start();
-                            t8.start();
 
                             try {
-                                t5.join();
-                                t6.join();
-                                t7.join();
-                                t8.join();
+                                System.out.println("attempt to shutdown GET executor");
+                                executorService.shutdown();
+                                executorService.awaitTermination(5, TimeUnit.SECONDS);
                             } catch (InterruptedException e) {
-                                System.out.println("GET e");
-                                e.printStackTrace();
+                                System.err.println("tasks interrupted");
+                            } finally {
+                                if (!executorService.isTerminated()) {
+                                    System.err.println("cancel non-finished tasks");
+                                }
+                                executorService.shutdownNow();
+                                System.out.println("shutdown finished");
                             }
-
-
                             endTime = System.currentTimeMillis();
                             timetaken = endTime - startTime;
-                            bw.write(timetaken + "\t");
-                            bw.newLine();
+                            bw.write(timetaken + "\n");
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
