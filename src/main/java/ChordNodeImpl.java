@@ -24,7 +24,7 @@ import static java.lang.Thread.sleep;
 
 public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
-    public static int m = 8;
+    public static int m = 6;
     public static final int IMAGE_STEP = 4;
     private static final int StabilizePeriod = 10000; // 10 sec
     private static final int FixFingerPeriod = 10000; // 10 sec
@@ -32,7 +32,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
     public static int maxNodes = (int) Math.pow(2.0, (long) m);         // Maximum number of permitted nodes in the Chord Ring
     public static BootStrapNode bootstrap;
     private static int num = 0;  // used during rmi registry binding
-    private static int fingerTableSize = m - 1; // finger table size
+    private static int fingerTableSize = 2 * m - 1; // finger table size
     private static int fix_finger_count = 0; // store the id of next finger entry to update
     private static Timer timerStabilize = new Timer();
     private static Timer timerFixFinger = new Timer();
@@ -358,40 +358,112 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                             bw.write(cnt + "\t");
                             System.out.println("Count: " + cnt);
 
-                            //Put
                             startTime = System.currentTimeMillis();
-                            for (int i = 1; i <= cnt; i++) {
-                                key = String.valueOf(cnt * i);
-                                value = String.valueOf("value" + i);
-                                Result result1 = new Result();
-                                cni.insert_key(key, value, result1);
+
+                            int finalCnt = cnt;
+                            Thread t1 = new Thread(() -> {
+                                for (int i = 1; i <= finalCnt; i++) {
+                                    String key1 = String.valueOf(finalCnt * i + 1);
+                                    String value1 = String.valueOf("value" + i);
+                                    Result result1 = new Result();
+                                    cni.insert_key(key1, value1, result1);
+                                }
+                            });
+                            Thread t2 = new Thread(() -> {
+                                for (int i = 1; i <= finalCnt; i++) {
+                                    String key1 = String.valueOf(finalCnt * i + 2);
+                                    String value1 = String.valueOf("value" + i);
+                                    Result result1 = new Result();
+                                    cni.insert_key(key1, value1, result1);
+                                }
+                            });
+                            Thread t3 = new Thread(() -> {
+                                for (int i = 1; i <= finalCnt; i++) {
+                                    String key1 = String.valueOf(finalCnt * i + 3);
+                                    String value1 = String.valueOf("value" + i);
+                                    Result result1 = new Result();
+                                    cni.insert_key(key1, value1, result1);
+                                }
+                            });
+                            Thread t4 = new Thread(() -> {
+                                for (int i = 1; i <= finalCnt; i++) {
+                                    String key1 = String.valueOf(finalCnt * i + 4);
+                                    String value1 = String.valueOf("value" + i);
+                                    Result result1 = new Result();
+                                    cni.insert_key(key1, value1, result1);
+                                }
+                            });
+                            t1.start();
+                            t2.start();
+                            t3.start();
+                            t4.start();
+
+                            try {
+                                t1.join();
+                                t2.join();
+                                t3.join();
+                                t4.join();
+                            } catch (InterruptedException e) {
+                                System.out.println("PUT e");
+                                e.printStackTrace();
                             }
+
+
                             endTime = System.currentTimeMillis();
                             timetaken = endTime - startTime;
                             bw.write(timetaken + "\t");
 
-                            try {
-                                sleep(10 * StabilizePeriod); //Wait for 10 stabilizations.
-                            } catch (InterruptedException ignored) {
-
-                            }
-
-                            //Get
                             startTime = System.currentTimeMillis();
-                            for (int i = 1; i <= cnt; i++) {
-                                key = String.valueOf(cnt * i);
-                                Result result1 = new Result();
-                                cni.get_value(key, result1);
+
+                            Thread t5 = new Thread(() -> {
+                                for (int i = 1; i <= finalCnt; i++) {
+                                    String key1 = String.valueOf(finalCnt * i + 1);
+                                    Result result1 = new Result();
+                                    cni.get_value(key1, result1);
+                                }
+                            });
+                            Thread t6 = new Thread(() -> {
+                                for (int i = 1; i <= finalCnt; i++) {
+                                    String key1 = String.valueOf(finalCnt * i + 2);
+                                    Result result1 = new Result();
+                                    cni.get_value(key1, result1);
+                                }
+                            });
+                            Thread t7 = new Thread(() -> {
+                                for (int i = 1; i <= finalCnt; i++) {
+                                    String key1 = String.valueOf(finalCnt * i + 3);
+                                    Result result1 = new Result();
+                                    cni.get_value(key1, result1);
+                                }
+                            });
+                            Thread t8 = new Thread(() -> {
+                                for (int i = 1; i <= finalCnt; i++) {
+                                    String key1 = String.valueOf(finalCnt * i + 4);
+                                    Result result1 = new Result();
+                                    cni.get_value(key1, result1);
+                                }
+                            });
+                            t5.start();
+                            t6.start();
+                            t7.start();
+                            t8.start();
+
+                            try {
+                                t5.join();
+                                t6.join();
+                                t7.join();
+                                t8.join();
+                            } catch (InterruptedException e) {
+                                System.out.println("GET e");
+                                e.printStackTrace();
                             }
+
+
                             endTime = System.currentTimeMillis();
                             timetaken = endTime - startTime;
-                            bw.write(timetaken + "\n");
+                            bw.write(timetaken + "\t");
 
-                            try {
-                                sleep(2 * StabilizePeriod); //Wait for 2 stabilizations.
-                            } catch (InterruptedException ignored) {
 
-                            }
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -413,6 +485,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                             log.info("Removing the node from ring [ChordNode_" + cni.node.port + "]");
                             Naming.unbind("rmi://localhost/ChordNode_" + cni.node.port);
                             log.debug("ChordNode RMI object unbinded");
+                            System.out.println("Node removed from RMI registry!");
                         } catch (Exception e) {
                             log.error(e.getClass() + ": " + e.getMessage() + ": " + e.getCause() + "\n" + Arrays.toString(e.getStackTrace()), e);
                         }
