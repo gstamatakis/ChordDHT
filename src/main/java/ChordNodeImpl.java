@@ -459,7 +459,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                         try {
                             System.out.println("attempt to shutdown PUT executor");
                             executorServicePUT.shutdown();
-                            executorServicePUT.awaitTermination(5, TimeUnit.SECONDS);
+                            executorServicePUT.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
                         } catch (InterruptedException e) {
                             System.err.println("tasks interrupted");
                         } finally {
@@ -473,7 +473,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                         try {
                             System.out.println("attempt to shutdown GET executor");
                             executorServiceGET.shutdown();
-                            executorServiceGET.awaitTermination(5, TimeUnit.SECONDS);
+                            executorServiceGET.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
                         } catch (InterruptedException e) {
                             System.err.println("tasks interrupted");
                         } finally {
