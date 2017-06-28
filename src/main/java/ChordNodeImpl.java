@@ -459,6 +459,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                             endTime = System.currentTimeMillis();
                             timetaken = endTime - startTime;
                             bw.write(timetaken + "\t");
+                            bw.newLine();
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -472,8 +473,6 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                     if (cni.leave_ring(lhops)) {
                         timerStabilize.cancel();
                         timerFixFinger.cancel();
-                        timerStabilize.purge();         //TODO this is overkill.
-                        timerFixFinger.purge();
                         System.out.println("Node left...No more operations allowed");
 
                         try {
