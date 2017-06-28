@@ -457,31 +457,31 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
                         //Shutdown both executors.
                         try {
-                            System.out.println("attempt to shutdown PUT executor");
+                            log.info("attempt to shutdown PUT executor");
                             executorServicePUT.shutdown();
-                            executorServicePUT.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
+                            executorServicePUT.awaitTermination(10, TimeUnit.SECONDS);
                         } catch (InterruptedException e) {
-                            System.err.println("tasks interrupted");
+                            log.error("tasks interrupted");
                         } finally {
                             if (!executorServicePUT.isTerminated()) {
-                                System.err.println("cancel non-finished tasks");
+                                log.error("cancel non-finished tasks");
                             }
                             executorServicePUT.shutdownNow();
-                            System.out.println("shutdown finished");
+                            log.info("shutdown finished");
                         }
 
                         try {
-                            System.out.println("attempt to shutdown GET executor");
+                            log.info("attempt to shutdown GET executor");
                             executorServiceGET.shutdown();
-                            executorServiceGET.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
+                            executorServiceGET.awaitTermination(10, TimeUnit.SECONDS);
                         } catch (InterruptedException e) {
-                            System.err.println("tasks interrupted");
+                            log.error("tasks interrupted");
                         } finally {
                             if (!executorServiceGET.isTerminated()) {
-                                System.err.println("cancel non-finished tasks");
+                                log.error("cancel non-finished tasks");
                             }
                             executorServiceGET.shutdownNow();
-                            System.out.println("shutdown finished");
+                            log.info("shutdown finished");
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -489,7 +489,6 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-
                     break;
                 case 9:
                     Result lhops = new Result();
