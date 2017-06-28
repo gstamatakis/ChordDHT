@@ -352,6 +352,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                     System.out.println("Number of keys (power of 2): ");
                     int numOfKeys = Integer.parseInt(sc.nextLine());
                     try (BufferedWriter bw = new BufferedWriter(new FileWriter("benchmark.txt", true))) {
+                        bw.newLine();
                         bw.write("\nCount\tPut(ms)\tGet(ms)");
                         bw.newLine();
                         for (int cnt = 1; cnt <= numOfKeys; cnt *= 2) {
@@ -364,7 +365,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
                             //PUT
                             startTime = System.currentTimeMillis();
-                            executorService.submit(() -> {
+                            executorService.execute(() -> {
                                 for (int i = 0; i <= finalCnt; i += 4) {
                                     String key1 = String.valueOf(finalCnt * i);
                                     String value1 = String.valueOf("value_t1" + i);
@@ -373,7 +374,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                                 }
                             });
 
-                            executorService.submit(() -> {
+                            executorService.execute(() -> {
                                 for (int i = 1; i <= finalCnt; i += 4) {
                                     String key1 = String.valueOf(finalCnt * i);
                                     String value1 = String.valueOf("value_t2" + i);
@@ -382,7 +383,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                                 }
                             });
 
-                            executorService.submit(() -> {
+                            executorService.execute(() -> {
                                 for (int i = 2; i <= finalCnt; i += 4) {
                                     String key1 = String.valueOf(finalCnt * i);
                                     String value1 = String.valueOf("value_t3" + i);
@@ -391,7 +392,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                                 }
                             });
 
-                            executorService.submit(() -> {
+                            executorService.execute(() -> {
                                 for (int i = 3; i <= finalCnt; i += 4) {
                                     String key1 = String.valueOf(finalCnt * i);
                                     String value1 = String.valueOf("value_t4" + i);
@@ -419,7 +420,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
                             //GET
                             startTime = System.currentTimeMillis();
-                            executorService.submit(() -> {
+                            executorService.execute(() -> {
                                 for (int i = 0; i <= finalCnt; i += 4) {
                                     String key1 = String.valueOf(finalCnt * i);
                                     Result result1 = new Result();
@@ -427,7 +428,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                                 }
                             });
 
-                            executorService.submit(() -> {
+                            executorService.execute(() -> {
                                 for (int i = 1; i <= finalCnt; i += 4) {
                                     String key1 = String.valueOf(finalCnt * i);
                                     Result result1 = new Result();
@@ -435,7 +436,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                                 }
                             });
 
-                            executorService.submit(() -> {
+                            executorService.execute(() -> {
                                 for (int i = 2; i <= finalCnt; i += 4) {
                                     String key1 = String.valueOf(finalCnt * i);
                                     Result result1 = new Result();
@@ -443,7 +444,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                                 }
                             });
 
-                            executorService.submit(() -> {
+                            executorService.execute(() -> {
                                 for (int i = 3; i <= finalCnt; i += 4) {
                                     String key1 = String.valueOf(finalCnt * i);
                                     Result result1 = new Result();
