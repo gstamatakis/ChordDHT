@@ -361,7 +361,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                             Thread t1 = new Thread(() -> {
                                 for (int i = 1; i <= finalCnt; i++) {
                                     String key1 = String.valueOf(finalCnt * i + 1);
-                                    String value1 = String.valueOf("value" + i);
+                                    String value1 = String.valueOf("value_t1" + i);
                                     Result result1 = new Result();
                                     cni.insert_key(key1, value1, result1);
                                 }
@@ -369,7 +369,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                             Thread t2 = new Thread(() -> {
                                 for (int i = 1; i <= finalCnt; i++) {
                                     String key1 = String.valueOf(finalCnt * i + 2);
-                                    String value1 = String.valueOf("value" + i);
+                                    String value1 = String.valueOf("value_t2" + i);
                                     Result result1 = new Result();
                                     cni.insert_key(key1, value1, result1);
                                 }
@@ -377,7 +377,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                             Thread t3 = new Thread(() -> {
                                 for (int i = 1; i <= finalCnt; i++) {
                                     String key1 = String.valueOf(finalCnt * i + 3);
-                                    String value1 = String.valueOf("value" + i);
+                                    String value1 = String.valueOf("value_t3" + i);
                                     Result result1 = new Result();
                                     cni.insert_key(key1, value1, result1);
                                 }
@@ -385,7 +385,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                             Thread t4 = new Thread(() -> {
                                 for (int i = 1; i <= finalCnt; i++) {
                                     String key1 = String.valueOf(finalCnt * i + 4);
-                                    String value1 = String.valueOf("value" + i);
+                                    String value1 = String.valueOf("value_t4" + i);
                                     Result result1 = new Result();
                                     cni.insert_key(key1, value1, result1);
                                 }
