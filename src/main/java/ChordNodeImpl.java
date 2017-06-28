@@ -19,8 +19,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import static java.lang.Thread.sleep;
-
 
 public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
@@ -74,8 +72,8 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
         Result result = new Result();
         HashMap<String, Result> met;
 
-        if (args.length < 3) {
-            System.out.println("Usage : java ChordNodeImpl <ip address of current node> <ipaddress of bootstrap> <zone-ID(range 0-m)>");
+        if (args.length < 2) {
+            System.out.println("Usage : java ChordNodeImpl <ip address of current node> <ipaddress of bootstrap>");
             System.exit(-1);
         }
 
@@ -99,7 +97,6 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
         log.info("\n## Creating chord node instance ##\n");
 
         String nodeIPAddress = args[0];
-        int zoneID = Integer.parseInt(args[2]);
 
         try {
             startTime = System.currentTimeMillis();
@@ -134,7 +131,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
         log.info("Chord node instance created with rmi name [ChordNode_" + num + "]");
 
-        ArrayList<NodeInfo> nodes = bootstrap.addNodeToRing(nodeIPAddress, num + "", zoneID);
+        ArrayList<NodeInfo> nodes = bootstrap.addNodeToRing(nodeIPAddress, num + "");
         if (nodes != null) {
             cni.node = nodes.get(0);
             FingerTableEntry fte = new FingerTableEntry((cni.node.nodeID + 1) % maxNodes, nodes.get(1));
@@ -462,8 +459,6 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                             endTime = System.currentTimeMillis();
                             timetaken = endTime - startTime;
                             bw.write(timetaken + "\t");
-
-
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -477,12 +472,11 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                     if (cni.leave_ring(lhops)) {
                         timerStabilize.cancel();
                         timerFixFinger.cancel();
-                        timerStabilize.purge();
+                        timerStabilize.purge();         //TODO this is overkill.
                         timerFixFinger.purge();
                         System.out.println("Node left...No more operations allowed");
 
                         try {
-                            log.info("Removing the node from ring [ChordNode_" + cni.node.port + "]");
                             Naming.unbind("rmi://localhost/ChordNode_" + cni.node.port);
                             log.debug("ChordNode RMI object unbinded");
                             System.out.println("Node removed from RMI registry!");
@@ -493,11 +487,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                         endTime = System.currentTimeMillis();
                         timetaken = endTime - startTime;
                         lhops.latency = timetaken;
-                        log.info("Hop Count while leaving Chord network: " + lhops.hopCount);
                         log.info("Time taken for leaving the Chord network:" + timetaken + "ms");
-                        met = new HashMap<>();
-                        met.put("LEAVE", lhops);
-                        cni.metrics.add(met);
                         sc.close();
                     } else {
                         System.out.println("Error: Cannot leave ring right now");
@@ -892,22 +882,11 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
 		/* Order of operations for initializing a new node:
         1) Initialize Finger table.
-		2) Inform successor node about new node.
-		3) Migrate keys from successor to new node.
-		4) Inform predecessor node about new node.
-		P.S. Only after operation (4) is the new node actually connected to the ring.
-		Once predecessor knows about the new node, other nodes in the ring
-		will eventually learn of it through fix fingers.
-
-		Note: Don't change the order.
-		This order ensures that the new node does not receive any key-related requests
-		before it joins the ring.
-		Also, any key requests for keys belonging to the new node,
-		that arrived at the successor node while migration was in progress,
-		will eventually be routed to the new node.
+		2) Inform successor node.
+		3) Migrate keys from successor.
+		4) Inform predecessor node.
 		*/
 
-        //System.out.println("Ring Size: " + ringsize);
         if (ringsize > 1) { //More than one node in the Chord Ring
 
             log.info("Starting finger table initialization.\n");
@@ -1145,7 +1124,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
     }
 
     @Override
-    public boolean leave_ring(Result result) throws RemoteException {
+    public boolean leave_ring(Result result) throws RemoteException {//TODO needs more testing, although it is successful 9/10 times.
         ChordNode c;
         data_rwlock.writeLock().lock();
 
@@ -1197,7 +1176,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
     @Override
     public int generate_ID(String key, int maxNodes) throws RemoteException, NoSuchAlgorithmException {
-        MessageDigest md = MessageDigest.getInstance("SHA-1");
+        MessageDigest md = MessageDigest.getInstance("SHA-1");//TODO switch to a better algo if needed. Although its "good enough"
         md.reset();
         byte[] hashBytes = md.digest(key.getBytes());
         BigInteger hashValue = new BigInteger(1, hashBytes);
@@ -1256,76 +1235,4 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
             }
         }
     }
-//
-//    public void exp1() {
-//        Thread t1 = new Thread(new Runnable() {
-//            public void run() {
-//                //
-//                try {
-//                    Result insHops = new Result();
-//                    ChordNode c = (ChordNode) Naming.lookup("rmi://" + nodeList.get(0).ipaddress + "/ChordNode_" + nodeList.get(0).port);
-//                    int testOps = 0;
-//                    for (int i = 0; i < testKeyCount / 3; i++) {
-//                        System.out.println("THREAD 1 : Inserting Key : " + TestKeysList.get(i));
-//                        c.insert_key(TestKeysList.get(i), TestKeysList.get(i), insHops);
-//                        testOps++;
-//                    }
-//                    insHops.latency = c.get_insert_latency();
-//                    insHops.hopCount = c.get_insert_hopcount();
-//                    System.out.println("Got latency from thread 1 : " + insHops.latency);
-//                    stats.add(insHops);
-//                    testOpsStat[0] = true;
-//                } catch (MalformedURLException | RemoteException | NotBoundException e) {
-//                    e.printStackTrace();
-//                    //log.error(e.getClass() + ": " +  e.getMessage() + ": " + e.getCause() + "\n" +  e.getStackTrace().toString(),e);
-//                }
-//            }
-//        });
-//        Thread t2 = new Thread(new Runnable() {
-//            public void run() {
-//                try {
-//                    Result insHops = new Result();
-//                    ChordNode c = (ChordNode) Naming.lookup("rmi://" + nodeList.get(1).ipaddress + "/ChordNode_" + nodeList.get(1).port);
-//                    int testOps = 0;
-//                    for (int i = (testKeyCount / 3); i < ((2 * testKeyCount) / 3); i++) {
-//                        System.out.println("THREAD 2 : Inserting Key : " + TestKeysList.get(i));
-//                        c.insert_key(TestKeysList.get(i), TestKeysList.get(i), insHops);
-//                        testOps++;
-//                    }
-//                    insHops.latency = c.get_insert_latency();
-//                    insHops.hopCount = c.get_insert_hopcount();
-//                    System.out.println("Got latency from thread 2 : " + insHops.latency);
-//                    stats.add(insHops);
-//                    testOpsStat[1] = true;
-//                } catch (MalformedURLException | RemoteException | NotBoundException e) {
-//                    e.printStackTrace();
-//                    //log.error(e.getClass() + ": " +  e.getMessage() + ": " + e.getCause() + "\n" +  e.getStackTrace().toString(),e);
-//                }
-//            }
-//        });
-//        Thread t3 = new Thread(new Runnable() {
-//            public void run() {
-//                //
-//                try {
-//                    Result insHops = new Result();
-//                    ChordNode c = (ChordNode) Naming.lookup("rmi://" + nodeList.get(2).ipaddress + "/ChordNode_" + nodeList.get(2).port);
-//                    int testOps = 0;
-//                    for (int i = ((2 * testKeyCount) / 3); i < testKeyCount; i++) {
-//                        System.out.println("THREAD 3 : Inserting Key : " + TestKeysList.get(i));
-//                        c.insert_key(TestKeysList.get(i), TestKeysList.get(i), insHops);
-//                        testOps++;
-//                    }
-//                    insHops.latency = c.get_insert_latency();
-//                    insHops.hopCount = c.get_insert_hopcount();
-//                    System.out.println("Got latency from thread 2 : " + insHops.latency);
-//                    stats.add(insHops);
-//                    testOpsStat[2] = true;
-//                } catch (MalformedURLException | RemoteException | NotBoundException e) {
-//                    e.printStackTrace();
-//                    //log.error(e.getClass() + ": " +  e.getMessage() + ": " + e.getCause() + "\n" +  e.getStackTrace().toString(),e);
-//                }
-//            }
-//        });
-//
-//    }
 }
