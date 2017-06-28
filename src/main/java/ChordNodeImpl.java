@@ -71,7 +71,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
         ChordNode c;
         ChordNodeImpl cni;
         boolean running = true;
-        long startTime, endTime, timetaken;
+        long startTime = 0, endTime = 0, timetaken;
         Result result = new Result();
         HashMap<String, Result> met;
 
@@ -350,6 +350,9 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
                 case 8:
                     System.out.println("Number of keys (power of 2): ");
+                    ExecutorService executorServicePUT = Executors.newFixedThreadPool(4);
+                    ExecutorService executorServiceGET = Executors.newFixedThreadPool(4);
+
                     int numOfKeys = Integer.parseInt(sc.nextLine());
                     try (BufferedWriter bw = new BufferedWriter(new FileWriter("benchmark.txt", true))) {
                         bw.newLine();
@@ -358,14 +361,11 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                         for (int cnt = 1; cnt <= numOfKeys; cnt *= 2) {
                             bw.write(cnt + "\t");
                             System.out.println("Count: " + cnt);
-
-
                             int finalCnt = cnt;
-                            ExecutorService executorService = Executors.newFixedThreadPool(4);
 
                             //PUT
                             startTime = System.currentTimeMillis();
-                            executorService.execute(() -> {
+                            executorServicePUT.execute(() -> {
                                 for (int i = 0; i <= finalCnt; i += 4) {
                                     String key1 = String.valueOf(finalCnt * i);
                                     String value1 = String.valueOf("value_t1" + i);
@@ -374,7 +374,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                                 }
                             });
 
-                            executorService.execute(() -> {
+                            executorServicePUT.execute(() -> {
                                 for (int i = 1; i <= finalCnt; i += 4) {
                                     String key1 = String.valueOf(finalCnt * i);
                                     String value1 = String.valueOf("value_t2" + i);
@@ -383,7 +383,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                                 }
                             });
 
-                            executorService.execute(() -> {
+                            executorServicePUT.execute(() -> {
                                 for (int i = 2; i <= finalCnt; i += 4) {
                                     String key1 = String.valueOf(finalCnt * i);
                                     String value1 = String.valueOf("value_t3" + i);
@@ -392,7 +392,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                                 }
                             });
 
-                            executorService.execute(() -> {
+                            executorServicePUT.execute(() -> {
                                 for (int i = 3; i <= finalCnt; i += 4) {
                                     String key1 = String.valueOf(finalCnt * i);
                                     String value1 = String.valueOf("value_t4" + i);
@@ -400,27 +400,26 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                                     cni.insert_key(key1, value1, result1);
                                 }
                             });
-
                             try {
                                 System.out.println("attempt to shutdown PUT executor");
-                                executorService.shutdown();
-                                executorService.awaitTermination(5, TimeUnit.SECONDS);
+                                executorServicePUT.shutdown();
+                                executorServicePUT.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
+                                endTime = System.currentTimeMillis();
                             } catch (InterruptedException e) {
                                 System.err.println("tasks interrupted");
                             } finally {
-                                if (!executorService.isTerminated()) {
+                                if (!executorServicePUT.isTerminated()) {
                                     System.err.println("cancel non-finished tasks");
                                 }
-                                executorService.shutdownNow();
+                                executorServicePUT.shutdownNow();
                                 System.out.println("shutdown finished");
                             }
-                            endTime = System.currentTimeMillis();
                             timetaken = endTime - startTime;
                             bw.write(timetaken + "\t");
 
                             //GET
                             startTime = System.currentTimeMillis();
-                            executorService.execute(() -> {
+                            executorServiceGET.execute(() -> {
                                 for (int i = 0; i <= finalCnt; i += 4) {
                                     String key1 = String.valueOf(finalCnt * i);
                                     Result result1 = new Result();
@@ -428,7 +427,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                                 }
                             });
 
-                            executorService.execute(() -> {
+                            executorServiceGET.execute(() -> {
                                 for (int i = 1; i <= finalCnt; i += 4) {
                                     String key1 = String.valueOf(finalCnt * i);
                                     Result result1 = new Result();
@@ -436,7 +435,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                                 }
                             });
 
-                            executorService.execute(() -> {
+                            executorServiceGET.execute(() -> {
                                 for (int i = 2; i <= finalCnt; i += 4) {
                                     String key1 = String.valueOf(finalCnt * i);
                                     Result result1 = new Result();
@@ -444,31 +443,33 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                                 }
                             });
 
-                            executorService.execute(() -> {
+                            executorServiceGET.execute(() -> {
                                 for (int i = 3; i <= finalCnt; i += 4) {
                                     String key1 = String.valueOf(finalCnt * i);
                                     Result result1 = new Result();
                                     cni.get_value(key1, result1);
                                 }
                             });
-
-                            try {
-                                System.out.println("attempt to shutdown GET executor");
-                                executorService.shutdown();
-                                executorService.awaitTermination(5, TimeUnit.SECONDS);
-                            } catch (InterruptedException e) {
-                                System.err.println("tasks interrupted");
-                            } finally {
-                                if (!executorService.isTerminated()) {
-                                    System.err.println("cancel non-finished tasks");
-                                }
-                                executorService.shutdownNow();
-                                System.out.println("shutdown finished");
-                            }
                             endTime = System.currentTimeMillis();
                             timetaken = endTime - startTime;
                             bw.write(timetaken + "\n");
                         }
+                        try {
+                            System.out.println("attempt to shutdown GET executor");
+                            executorServicePUT.shutdown();
+                            executorServicePUT.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
+                            endTime = System.currentTimeMillis();
+                        } catch (InterruptedException e) {
+                            System.err.println("tasks interrupted");
+                        } finally {
+                            if (!executorServicePUT.isTerminated()) {
+                                System.err.println("cancel non-finished tasks");
+                            }
+                            executorServicePUT.shutdownNow();
+                            System.out.println("shutdown finished");
+                        }
+                        timetaken = endTime - startTime;
+                        bw.write(timetaken + "\t");
                     } catch (IOException e) {
                         e.printStackTrace();
                         return;
