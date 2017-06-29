@@ -19,7 +19,7 @@ network that handles the initial join of ever other node.
         mvn clean compile assembly:single
 
 3a. To setup the BootStrap Node run rmiregistry command in the target/classes folder of the bootstrap built mvn project 
-and the execute the bootstrap jar.
+and then execute the bootstrap jar.
 
         rmiregistry &
         
