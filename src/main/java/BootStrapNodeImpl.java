@@ -19,9 +19,9 @@ import java.util.*;
 public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapNode {
     private static final long serialVersionUID = 10L;
 
-    public static int m = 6;
-    public static int maxNodes = (int) Math.pow(2.0, (long) m);         // Maximum number of permitted nodes in the Chord Ring
-    public static HashMap<Integer, NodeInfo> nodes = new HashMap<>();   // Variables to identify the nodes in the Chord Ring
+    private static int m = 6;
+    private static int maxNodes = (int) Math.pow(2.0, (long) m);         // Maximum number of permitted nodes in the Chord Ring
+    private static HashMap<Integer, NodeInfo> nodes = new HashMap<>();   // Variables to identify the nodes in the Chord Ring
     private static int noOfNodes = 0;
     private static ArrayList<NodeInfo> nodeList = new ArrayList<>();
     private static ArrayList<Integer> nodeIds = new ArrayList<>();
@@ -66,10 +66,8 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
                 String timeStamp;
                 ArrayList<Integer> randomIds;//Stores the set of random Ids generated for the network proximity method
                 ArrayList<Integer> succIds;
-                ArrayList<Integer> predIds;
                 randomIds = new ArrayList<>();
                 succIds = new ArrayList<>();
-                predIds = new ArrayList<>();
 
                 int i;
                 int freeZoneCnt = 0;
@@ -93,8 +91,7 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
                         copy.add(nodeID);
                         Collections.sort(copy);
                         succIds.add(nodeIds.get((nodeIds.indexOf(nodeID) + 1) % noOfNodes));
-                        predIds.add(nodeIds.get((nodeIds.indexOf(nodeID) - 1 + noOfNodes) % noOfNodes));
-                        copy.remove(new Integer(nodeID));
+                        copy.remove(Integer.valueOf(nodeID));
                     }
                 }
                 //If only one zone was found to be free directly add to the nodeIds list
@@ -110,7 +107,6 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
                     for (k = 0; k < randomIds.size(); k++) {
                         randomIds.get(k);
                         int succ_id = succIds.get(k);
-                        predIds.get(k);
                         long startTime = System.currentTimeMillis();
                         ChordNode c = null;
                         try {
@@ -155,7 +151,7 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
                 return;
             nodeList.remove(nodes.get(n.nodeID));
             System.out.println("Updated node list");
-            nodeIds.remove(new Integer(n.nodeID));
+            nodeIds.remove(Integer.valueOf(n.nodeID));
             System.out.println("Updated node ID list");
             nodes.remove(n.nodeID);
             noOfNodes--;
