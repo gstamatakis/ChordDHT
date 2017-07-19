@@ -9,7 +9,7 @@ Java 8+ (Added java9 support)
 
 Docker, if the deployment method is a docker swarm.
 
-##Summary
+###Summary
 This is a distributed dictionary that can save Key-Value pairs in a network of nodes.
 The network implements a Chord-like logic using java RMI for RPC. Maven is used to build the fat 
 JARs required in order to run the project. The project consists of 2 JARs that need to be built, the 
