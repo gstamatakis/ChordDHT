@@ -1,10 +1,17 @@
 import java.io.Serializable;
 
-public class Result implements Serializable {
-    public long latency; //Stores the latency for any operation in milliseconds.
-    int hopCount; //Stores number of communication messages exchanged for an operation
+/**
+ * Represents the response received by various operations in the chord network.
+ * Stores the latency for any operation in milliseconds and the communication messages exchanged for an operation.
+ */
+class Result implements Serializable {
+    long latency;
+    int hopCount;
 
-    public Result() {
+    /**
+     * Default constructor.
+     */
+    Result() {
         this.hopCount = 0;
         this.latency = 0;
     }

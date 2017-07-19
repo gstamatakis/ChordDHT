@@ -1,6 +1,6 @@
 public class FingerTableEntry {
-    public int start;
-    public NodeInfo successor;
+    int start;
+    NodeInfo successor;
 
     /**
      * Dummy constructor
@@ -16,7 +16,7 @@ public class FingerTableEntry {
      * @param start The start value for each finger table entry
      * @param n     The successor Chord Node instance information object
      */
-    public FingerTableEntry(int start, NodeInfo n) {
+    FingerTableEntry(int start, NodeInfo n) {
         this.start = start;
         this.successor = n;
     }

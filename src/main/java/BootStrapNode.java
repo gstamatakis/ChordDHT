@@ -2,7 +2,11 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HashMap;
 
+/**
+ * The interface
+ */
 public interface BootStrapNode extends Remote {
 
     /**

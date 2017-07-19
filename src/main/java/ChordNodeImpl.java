@@ -23,23 +23,23 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
-    public static int m = 6;
-    public static final int IMAGE_STEP = 4;
+    private static int m = 6;
+    private static final int IMAGE_STEP = 4;
     private static final int StabilizePeriod = 10000; // 10 sec
     private static final int FixFingerPeriod = 10000; // 10 sec
     private static final long serialVersionUID = 1L;
-    public static int maxNodes = (int) Math.pow(2.0, (long) m);         // Maximum number of permitted nodes in the Chord Ring
-    public static BootStrapNode bootstrap;
+    private static int maxNodes = (int) Math.pow(2.0, (long) m);         // Maximum number of permitted nodes in the Chord Ring
+    static BootStrapNode bootstrap;
     private static int num = 0;  // used during rmi registry binding
     private static int fingerTableSize = 2 * m - 1; // finger table size
     private static int fix_finger_count = 0; // store the id of next finger entry to update
     private static Timer timerStabilize = new Timer();
     private static Timer timerFixFinger = new Timer();
     private static Logger log = null;
-    public HashMap<Integer, HashMap<String, String>> data = new HashMap<>();//Data store for each Chord Node instance
-    public NodeInfo node;
-    public FingerTableEntry[] fingertable = null; //Data Structure to store the finger table for the Chord Node
-    public NodeInfo predecessor;
+    private HashMap<Integer, HashMap<String, String>> data = new HashMap<>();//Data store for each Chord Node instance
+    NodeInfo node;
+    FingerTableEntry[] fingertable = null; //Data Structure to store the finger table for the Chord Node
+    NodeInfo predecessor;
     private ReentrantReadWriteLock data_rwlock = new ReentrantReadWriteLock();
     private ArrayList<HashMap<String, Result>> metrics;
 
@@ -69,7 +69,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
         ChordNode c;
         ChordNodeImpl cni;
         boolean running = true;
-        long startTime, endTime = 0, timetaken;
+        long startTime, endTime, timetaken;
         Result result = new Result();
         HashMap<String, Result> met;
 
@@ -866,7 +866,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
      * @param result Result object to assist in metrics collection
      * @return null
      */
-    public void run(final Result result) {
+    void run(final Result result) {
         ChordNode c;
         NodeInfo suc = fingertable[0].successor;
 
@@ -1085,11 +1085,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
             data_rwlock.writeLock().unlock();
             res = insert_key(key, value, result);
         } else {
-            HashMap<String, String> entry = data.get(keyID);
-            if (entry == null) {
-                entry = new HashMap<>();
-                data.put(keyID, entry);
-            }
+            HashMap<String, String> entry = data.computeIfAbsent(keyID, k -> new HashMap<>());
             entry.put(key, value);
             data_rwlock.writeLock().unlock();
             log.info("Inserted key - " + key + " with value - " + value);
@@ -1137,7 +1133,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
     }
 
     @Override
-    public boolean leave_ring(Result result) throws RemoteException {//TODO needs more testing, although it is successful 9/10 times.
+    public boolean leave_ring(Result result) throws RemoteException {
         ChordNode c;
         data_rwlock.writeLock().lock();
 
@@ -1189,7 +1185,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
     @Override
     public int generate_ID(String key, int maxNodes) throws RemoteException, NoSuchAlgorithmException {
-        MessageDigest md = MessageDigest.getInstance("SHA-1");//TODO switch to a better algo if needed. Although its "good enough"
+        MessageDigest md = MessageDigest.getInstance("SHA-1");
         md.reset();
         byte[] hashBytes = md.digest(key.getBytes());
         BigInteger hashValue = new BigInteger(1, hashBytes);
@@ -1247,5 +1243,10 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                 e.printStackTrace();
             }
         }
+    }
+
+    @Override
+    public ArrayList<HashMap<String, Result>> getMetrics() throws RemoteException {
+        return this.metrics;
     }
 }

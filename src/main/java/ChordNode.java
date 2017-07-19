@@ -1,6 +1,8 @@
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 public interface ChordNode extends Remote {
     /**
@@ -184,6 +186,7 @@ public interface ChordNode extends Remote {
 
     /**
      * Function to display the data stored in the current Chord Node instance
+     *
      * @throws RemoteException Due to RMI.
      */
     void display_data_stored() throws RemoteException;
@@ -238,4 +241,12 @@ public interface ChordNode extends Remote {
      * @throws RemoteException Due to RMI.
      */
     void makeCall(NodeInfo n) throws RemoteException;
+
+    /**
+     * This function returns the metrics collected by the chord node.
+     *
+     * @return The metrics of the BootStrapNode.
+     * @throws RemoteException Due to RMI.
+     */
+    ArrayList<HashMap<String, Result>> getMetrics() throws RemoteException;
 }
