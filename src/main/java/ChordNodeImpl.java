@@ -10,6 +10,8 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.math.BigInteger;
 import java.net.MalformedURLException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -20,25 +22,47 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-
+/**
+ * The standard chord node of the network,implements the {@link ChordNode} interface.
+ */
 public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
+    /**
+     * Number of identifier bits.
+     */
     private static int m = 6;
+
+    /**
+     * //Slices of each image (see demo part).
+     */
     private static final int IMAGE_STEP = 4;
     private static final int StabilizePeriod = 10000; // 10 sec
     private static final int FixFingerPeriod = 10000; // 10 sec
     private static final long serialVersionUID = 1L;
-    private static int maxNodes = (int) Math.pow(2.0, (long) m);         // Maximum number of permitted nodes in the Chord Ring
+
+    /**
+     * Maximum number of nodes allowed in this network.
+     */
+    private static int maxNodes = (int) Math.pow(2.0, (long) m);
     static BootStrapNode bootstrap;
     private static int num = 0;  // used during rmi registry binding
-    private static int fingerTableSize = 2 * m - 1; // finger table size
-    private static int fix_finger_count = 0; // store the id of next finger entry to update
+    private static volatile int fingerTableSize = 2 * m - 1; // finger table size
+    private static volatile int fix_finger_count = 0; // store the id of next finger entry to update
     private static Timer timerStabilize = new Timer();
     private static Timer timerFixFinger = new Timer();
     private static Logger log = null;
-    private HashMap<Integer, HashMap<String, String>> data = new HashMap<>();//Data store for each Chord Node instance
+
+    /**
+     * Data store for each Chord Node instance
+     */
+    private HashMap<Integer, HashMap<String, String>> data = new HashMap<>();
+
     NodeInfo node;
-    FingerTableEntry[] fingertable = null; //Data Structure to store the finger table for the Chord Node
+
+    /**
+     * Data Structure to store the finger table for the Chord Node
+     */
+    transient FingerTableEntry[] fingertable = null;
     NodeInfo predecessor;
     private ReentrantReadWriteLock data_rwlock = new ReentrantReadWriteLock();
     private ArrayList<HashMap<String, Result>> metrics;
@@ -157,7 +181,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
         cni.run(result);
 
-        Scanner sc = new Scanner(System.in);
+        Scanner sc = new Scanner(System.in, "UTF-8");
         String key, value;
         boolean res;
         int choice;
@@ -172,7 +196,9 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                 System.out.println("Give valid input please.");
                 continue;
             } finally {
-                sc.nextLine();  // Consume newline left-over
+                if (sc.hasNextLine()) {
+                    sc.nextLine();
+                }
                 System.out.println("\n");
             }
 
@@ -259,17 +285,12 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                                 break;
 
                             default:
-                                try {
-                                    String Line;
-                                    BufferedReader BufferedReader = new BufferedReader(new FileReader(new File("resources/" + resource)));
-                                    while ((Line = BufferedReader.readLine()) != null) {
-                                        cni.insert_key(Line, "Explanation of " + Line, new Result());
-
-                                    }
-                                    BufferedReader.close();
-                                } catch (Exception e) {
-                                    System.out.println("Unrecognised file..");
+                                String Line;
+                                BufferedReader BufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream("resources/" + resource), StandardCharsets.UTF_8));
+                                while ((Line = BufferedReader.readLine()) != null) {
+                                    cni.insert_key(Line, "Explanation of " + Line, new Result());
                                 }
+                                BufferedReader.close();
                                 break;
                         }
                     } catch (FileNotFoundException ex) {
@@ -292,6 +313,8 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                         String res3 = resource.substring(0, resource.lastIndexOf("."));
                         switch (FilenameUtils.getExtension(resource)) {
                             case "png":
+                            case "jpeg":
+                            default:
                                 BufferedImage finalImg = null;
                                 File dir = null;
                                 for (int i = 0; ; i++) {
@@ -327,7 +350,6 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                                     System.out.println("Image not found..");
                                 }
                                 break;
-
                         }
                     } catch (IOException e) {
                         System.out.println("Can not overwrite files.." +
@@ -346,7 +368,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                     List<Callable<Integer>> getCallables = new ArrayList<>();
 
                     int numOfKeys = Integer.parseInt(sc.nextLine());
-                    try (BufferedWriter bw = new BufferedWriter(new FileWriter("benchmark.txt", true))) {
+                    try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("benchmark.txt", true), StandardCharsets.UTF_8))) {
                         bw.newLine();
                         bw.write("\nCount\tPut(ms)\tGet(ms)");
                         bw.newLine();
@@ -505,6 +527,8 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                     } else {
                         System.out.println("Error: Cannot leave ring right now");
                     }
+                    break;
+                default:
                     break;
             }
         }
@@ -852,19 +876,18 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
     public void fix_fingers(Result result) throws RemoteException {
         log.debug("Fix_fingers running on chord Node " + node.nodeID);
         //periodically fix all fingers
-        fix_finger_count = fix_finger_count + 1;
-        if (fix_finger_count == fingerTableSize) {
-            fix_finger_count = 1;
+        ChordNodeImpl.fix_finger_count++;
+        if (ChordNodeImpl.fix_finger_count == ChordNodeImpl.fingerTableSize) {
+            ChordNodeImpl.fix_finger_count = 1;
         }
         log.debug("Running fix_finger with i: " + fix_finger_count);
         fingertable[fix_finger_count].successor = find_successor(fingertable[fix_finger_count].start, result);
     }
 
-    /*
+    /**
      * This function is called after contacting the BootStrap server and obtaining the successor and predecessor nodes to initialize finger table and update other nodes after joining.
      *
      * @param result Result object to assist in metrics collection
-     * @return null
      */
     void run(final Result result) {
         ChordNode c;
@@ -1187,7 +1210,8 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
     public int generate_ID(String key, int maxNodes) throws RemoteException, NoSuchAlgorithmException {
         MessageDigest md = MessageDigest.getInstance("SHA-1");
         md.reset();
-        byte[] hashBytes = md.digest(key.getBytes());
+        byte[] hashBytes;
+        hashBytes = md.digest(key.getBytes(StandardCharsets.UTF_8));
         BigInteger hashValue = new BigInteger(1, hashBytes);
         log.debug("key:" + key + " hash:" + Math.abs(hashValue.intValue()) % maxNodes);
         return Math.abs(hashValue.intValue()) % maxNodes;

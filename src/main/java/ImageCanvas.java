@@ -16,6 +16,7 @@ import java.util.List;
 
 public class ImageCanvas implements Serializable {
     transient List<BufferedImage> images;
+    public static final long serialVersionUID = 1L;
 
     ImageCanvas() {
         images = new LinkedList<>();

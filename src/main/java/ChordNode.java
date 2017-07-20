@@ -4,6 +4,10 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+/**
+ * Defines the standard operations as stated in the original Chord paper with methods such as
+ * find_successor and fix_fingers.
+ */
 public interface ChordNode extends Remote {
     /**
      * This function is used to determine the successor node for a given node id.

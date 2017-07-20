@@ -4,7 +4,7 @@ import java.io.Serializable;
  * Represents the response received by various operations in the chord network.
  * Stores the latency for any operation in milliseconds and the communication messages exchanged for an operation.
  */
-class Result implements Serializable {
+public class Result implements Serializable {
     long latency;
     int hopCount;
 

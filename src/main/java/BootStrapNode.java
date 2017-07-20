@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
- * The interface
+ * Defines the operations of the {@link BootStrapNodeImpl} such as joins and departures.
  */
 public interface BootStrapNode extends Remote {
 

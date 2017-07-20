@@ -9,7 +9,11 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 
-public class ChordNodeImplTest {
+/**
+ * Basic test suite with CRUD operations.Run by {@link MyTestRunner}.
+ */
+
+class ChordNodeImplTest {
     private BootStrapNode bootstrap;
     private int num = 0;
     private int maxNodes = 32;
@@ -21,7 +25,7 @@ public class ChordNodeImplTest {
      */
 
     @Test
-    void insert_key() throws RemoteException {
+    void insert_key() throws RemoteException {//TODO fix bugs in the key insertion.
         ChordNode c;
         ChordNodeImpl cni;
         long startTime, endTime, timetaken;
@@ -42,7 +46,6 @@ public class ChordNodeImplTest {
         //logger assign
 
         String nodeIPAddress = "localhost";
-        int zoneID = Integer.parseInt("5");
 
         try {
             startTime = System.currentTimeMillis();
@@ -92,7 +95,7 @@ public class ChordNodeImplTest {
         fileAppender.setAppend(false);
         fileAppender.activateOptions();
 
-        cni.bootstrap = this.bootstrap;
+        ChordNodeImpl.bootstrap = this.bootstrap;
         cni.run(result);
 
         String key, value;

@@ -1,6 +1,7 @@
 
 import java.math.BigInteger;
 import java.net.MalformedURLException;
+import java.nio.charset.StandardCharsets;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -20,8 +21,16 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
     private static final long serialVersionUID = 10L;
 
     private static int m = 6;
-    private static int maxNodes = (int) Math.pow(2.0, (long) m);         // Maximum number of permitted nodes in the Chord Ring
-    private static HashMap<Integer, NodeInfo> nodes = new HashMap<>();   // Variables to identify the nodes in the Chord Ring
+
+    /**
+     * Maximum number of permitted nodes in the Chord Ring
+     */
+    private static int maxNodes = (int) Math.pow(2.0, (long) m);
+
+    /**
+     * Variables to identify the nodes in the Chord Ring
+     */
+    private static HashMap<Integer, NodeInfo> nodes = new HashMap<>();
     private static int noOfNodes = 0;
     private static ArrayList<NodeInfo> nodeList = new ArrayList<>();
     private static ArrayList<Integer> nodeIds = new ArrayList<>();
@@ -205,7 +214,7 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
     public int generate_ID(String key, int maxNodes) throws RemoteException, NoSuchAlgorithmException {
         MessageDigest md = MessageDigest.getInstance("SHA-1");
         md.reset();
-        md.update((key).getBytes());
+        md.update((key).getBytes(StandardCharsets.UTF_8));
         byte[] hashBytes = md.digest();
         BigInteger hashValue = new BigInteger(1, hashBytes);
         return Math.abs(hashValue.intValue()) % maxNodes;

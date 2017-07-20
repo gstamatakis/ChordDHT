@@ -1,3 +1,6 @@
+/**
+ * Used to represent contents of the finger table used by each {@link ChordNodeImpl}.
+ */
 public class FingerTableEntry {
     int start;
     NodeInfo successor;
