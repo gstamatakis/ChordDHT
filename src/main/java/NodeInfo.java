@@ -3,7 +3,7 @@ import java.io.Serializable;
 /**
  *Contains info about the nodes of the network such as the node ip,port and id.
  */
-class NodeInfo implements Serializable {
+public class NodeInfo implements Serializable {
 
     private static final long serialVersionUID = 1L;
     String ipaddress;

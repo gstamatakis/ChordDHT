@@ -196,7 +196,9 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                 System.out.println("Give valid input please.");
                 continue;
             } finally {
-                sc.nextLine();  // Consume newline left-over
+                if (sc.hasNextLine()) {
+                    sc.nextLine();
+                }
                 System.out.println("\n");
             }
 
