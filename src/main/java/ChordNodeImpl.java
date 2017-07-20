@@ -23,17 +23,27 @@ import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * The implementation of a the {@link ChordNode} iface.
- * Contains methods such as find_successor,fix_fingers,stabilize.
+ * The standard chord node of the network,implements the {@link ChordNode} interface.
  */
 public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
+    /**
+     * Number of identifier bits.
+     */
     private static int m = 6;
+
+    /**
+     * //Slices of each image (see demo part).
+     */
     private static final int IMAGE_STEP = 4;
     private static final int StabilizePeriod = 10000; // 10 sec
     private static final int FixFingerPeriod = 10000; // 10 sec
     private static final long serialVersionUID = 1L;
-    private static int maxNodes = (int) Math.pow(2.0, (long) m);         // Maximum number of permitted nodes in the Chord Ring
+
+    /**
+     * Maximum number of nodes allowed in this network.
+     */
+    private static int maxNodes = (int) Math.pow(2.0, (long) m);
     static BootStrapNode bootstrap;
     private static int num = 0;  // used during rmi registry binding
     private static volatile int fingerTableSize = 2 * m - 1; // finger table size
@@ -41,9 +51,18 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
     private static Timer timerStabilize = new Timer();
     private static Timer timerFixFinger = new Timer();
     private static Logger log = null;
-    private HashMap<Integer, HashMap<String, String>> data = new HashMap<>();//Data store for each Chord Node instance
+
+    /**
+     * Data store for each Chord Node instance
+     */
+    private HashMap<Integer, HashMap<String, String>> data = new HashMap<>();
+
     NodeInfo node;
-    transient FingerTableEntry[] fingertable = null; //Data Structure to store the finger table for the Chord Node
+
+    /**
+     * Data Structure to store the finger table for the Chord Node
+     */
+    transient FingerTableEntry[] fingertable = null;
     NodeInfo predecessor;
     private ReentrantReadWriteLock data_rwlock = new ReentrantReadWriteLock();
     private ArrayList<HashMap<String, Result>> metrics;
@@ -867,7 +886,6 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
      * This function is called after contacting the BootStrap server and obtaining the successor and predecessor nodes to initialize finger table and update other nodes after joining.
      *
      * @param result Result object to assist in metrics collection
-     * @return null
      */
     void run(final Result result) {
         ChordNode c;

@@ -9,6 +9,10 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 
+/**
+ * Basic test suite with CRUD operations.Run by {@link MyTestRunner}.
+ */
+
 class ChordNodeImplTest {
     private BootStrapNode bootstrap;
     private int num = 0;
@@ -21,7 +25,7 @@ class ChordNodeImplTest {
      */
 
     @Test
-    void insert_key() throws RemoteException {
+    void insert_key() throws RemoteException {//TODO fix bugs in the key insertion.
         ChordNode c;
         ChordNodeImpl cni;
         long startTime, endTime, timetaken;
