@@ -42,7 +42,6 @@ public class ChordNodeImplTest {
         //logger assign
 
         String nodeIPAddress = "localhost";
-        int zoneID = Integer.parseInt("5");
 
         try {
             startTime = System.currentTimeMillis();

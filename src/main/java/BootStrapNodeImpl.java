@@ -1,6 +1,7 @@
 
 import java.math.BigInteger;
 import java.net.MalformedURLException;
+import java.nio.charset.StandardCharsets;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -205,7 +206,7 @@ public class BootStrapNodeImpl extends UnicastRemoteObject implements BootStrapN
     public int generate_ID(String key, int maxNodes) throws RemoteException, NoSuchAlgorithmException {
         MessageDigest md = MessageDigest.getInstance("SHA-1");
         md.reset();
-        md.update((key).getBytes());
+        md.update((key).getBytes(StandardCharsets.UTF_8));
         byte[] hashBytes = md.digest();
         BigInteger hashValue = new BigInteger(1, hashBytes);
         return Math.abs(hashValue.intValue()) % maxNodes;

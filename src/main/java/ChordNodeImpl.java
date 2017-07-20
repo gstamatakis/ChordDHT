@@ -33,7 +33,7 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
     private static int maxNodes = (int) Math.pow(2.0, (long) m);         // Maximum number of permitted nodes in the Chord Ring
     static BootStrapNode bootstrap;
     private static int num = 0;  // used during rmi registry binding
-    private static int fingerTableSize = 2 * m - 1; // finger table size
+    private static volatile int fingerTableSize = 2 * m - 1; // finger table size
     private static volatile int fix_finger_count = 0; // store the id of next finger entry to update
     private static Timer timerStabilize = new Timer();
     private static Timer timerFixFinger = new Timer();
@@ -261,17 +261,12 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                                 break;
 
                             default:
-                                try {
-                                    String Line;
-                                    BufferedReader BufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream("resources/" + resource), StandardCharsets.UTF_8));
-                                    while ((Line = BufferedReader.readLine()) != null) {
-                                        cni.insert_key(Line, "Explanation of " + Line, new Result());
-
-                                    }
-                                    BufferedReader.close();
-                                } catch (Exception e) {
-                                    System.out.println("Unrecognised file..");
+                                String Line;
+                                BufferedReader BufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream("resources/" + resource), StandardCharsets.UTF_8));
+                                while ((Line = BufferedReader.readLine()) != null) {
+                                    cni.insert_key(Line, "Explanation of " + Line, new Result());
                                 }
+                                BufferedReader.close();
                                 break;
                         }
                     } catch (FileNotFoundException ex) {
@@ -293,7 +288,9 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
                         String resource = sc.nextLine();
                         String res3 = resource.substring(0, resource.lastIndexOf("."));
                         switch (FilenameUtils.getExtension(resource)) {
-                            default:    //case "png":
+                            case "png":
+                            case "jpeg":
+                            default:
                                 BufferedImage finalImg = null;
                                 File dir = null;
                                 for (int i = 0; ; i++) {
@@ -855,15 +852,15 @@ public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
     public void fix_fingers(Result result) throws RemoteException {
         log.debug("Fix_fingers running on chord Node " + node.nodeID);
         //periodically fix all fingers
-        fix_finger_count++;
-        if (fix_finger_count == fingerTableSize) {
-            fix_finger_count = 1;
+        ChordNodeImpl.fix_finger_count++;
+        if (ChordNodeImpl.fix_finger_count == ChordNodeImpl.fingerTableSize) {
+            ChordNodeImpl.fix_finger_count = 1;
         }
         log.debug("Running fix_finger with i: " + fix_finger_count);
         fingertable[fix_finger_count].successor = find_successor(fingertable[fix_finger_count].start, result);
     }
 
-    /*
+    /**
      * This function is called after contacting the BootStrap server and obtaining the successor and predecessor nodes to initialize finger table and update other nodes after joining.
      *
      * @param result Result object to assist in metrics collection
