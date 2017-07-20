@@ -9,7 +9,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 
-public class ChordNodeImplTest {
+class ChordNodeImplTest {
     private BootStrapNode bootstrap;
     private int num = 0;
     private int maxNodes = 32;
@@ -91,7 +91,7 @@ public class ChordNodeImplTest {
         fileAppender.setAppend(false);
         fileAppender.activateOptions();
 
-        cni.bootstrap = this.bootstrap;
+        ChordNodeImpl.bootstrap = this.bootstrap;
         cni.run(result);
 
         String key, value;

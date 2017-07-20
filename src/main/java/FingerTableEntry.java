@@ -1,3 +1,6 @@
+/**
+ *
+ */
 public class FingerTableEntry {
     int start;
     NodeInfo successor;

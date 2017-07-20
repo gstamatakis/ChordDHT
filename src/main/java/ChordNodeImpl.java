@@ -22,7 +22,10 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-
+/**
+ * The implementation of a the {@link ChordNode} iface.
+ * Contains methods such as find_successor,fix_fingers,stabilize.
+ */
 public class ChordNodeImpl extends UnicastRemoteObject implements ChordNode {
 
     private static int m = 6;
